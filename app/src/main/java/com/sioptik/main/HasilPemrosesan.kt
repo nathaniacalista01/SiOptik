@@ -15,6 +15,7 @@ import com.sioptik.main.image_processor.ImageProcessor
 import com.sioptik.main.processing_result.DynamicContentFragment
 import com.sioptik.main.processing_result.FullScreenImageActivity
 import com.sioptik.main.processing_result.SharedViewModel
+import com.sioptik.main.processing_result.json_parser.model.BoxData
 import com.sioptik.main.processing_result.json_parser.model.BoxMetadata
 import com.sioptik.main.processing_result.json_parser.parser.BoxMetadataParser
 import com.sioptik.main.processing_result.json_parser.parser.JsonParser
@@ -42,7 +43,6 @@ class HasilPemrosesan : AppCompatActivity() {
             val inputStream = resources.openRawResource(R.raw.box_metadata)
             val jsonString = inputStream.bufferedReader().use { it.readText() }
             boxesData = BoxMetadataParser.parse(jsonString, april_tag!!)
-            Log.i("TEST BOX DATA", boxesData.toString())
         }  catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "Failed to read JSON", Toast.LENGTH_SHORT).show()
@@ -64,12 +64,12 @@ class HasilPemrosesan : AppCompatActivity() {
                 val bitmap = MediaStore.Images.Media.getBitmap(this.contentResolver, imageUri)
 
                 // Process Image
-                val detectedBoxes = detectBoxes(bitmap)
+                val detectedBoxes = detectBoxes(bitmap, boxesData!!)
                 val processedBitmap = processImage(bitmap, detectedBoxes)
 
                 // Crop Detected Boxes for OCR
                 val croppedBoxes = cropBoxes(bitmap, detectedBoxes)
-//                Log.i("TEST CROPPED BOXES", croppedBoxes.toString())
+
 
                 imageView.setImageBitmap(processedBitmap)
             } catch (e: Exception) {
@@ -138,13 +138,35 @@ private fun cropBoxes(bitmap: Bitmap, boxes: List<Rect>) : List<Bitmap> {
 }
 
 
-private fun detectBoxes (bitmap: Bitmap) : List<Rect> {
-    val imgProcessor = ImageProcessor()
-    // Initial Mat
-    val originalMat = imgProcessor.convertBitmapToMat(bitmap)
-    val processedMat = imgProcessor.preprocessImage(originalMat)
-    // Detect Boxes
-    val boxes = imgProcessor.detectBoxes(processedMat)
+private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
+
+//     Previous Algorithm (Without List<BoxData>)
+//    val imgProcessor = ImageProcessor()
+//    // Initial Mat
+//    val originalMat = imgProcessor.convertBitmapToMat(bitmap)
+//    val processedMat = imgProcessor.preprocessImage(originalMat)
+//    // Detect Boxes
+//    val boxes = imgProcessor.detectBoxes(processedMat)
+
+    val boxes = mutableListOf<Rect>()
+    val w = bitmap.width
+    val h = bitmap.height
+    val ref_w = boxesData.w_ref
+    val ref_h = boxesData.h_ref
+    val w_ratio = w.toFloat() / ref_w.toFloat()
+    val h_ratio = h.toFloat() / ref_h.toFloat()
+
+    val boxesRectData = boxesData.data.boxes
+    boxesRectData.forEach { boxData ->
+        val adjusted_x = (boxData.x * w_ratio).toInt()
+        val adjusted_y = (boxData.y * h_ratio).toInt()
+        val adjusted_w = (boxData.w * w_ratio).toInt()
+
+        val new_rect = Rect(adjusted_x, adjusted_y, adjusted_w, adjusted_w)
+        Log.i("TEST NEW RECT", new_rect.toString())
+        boxes.add(new_rect)
+    }
+
     return boxes
 }
 

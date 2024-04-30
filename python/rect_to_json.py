@@ -7,9 +7,9 @@ PADDING = 30
 TL_BORDER_X = 310
 TL_BORDER_Y = 450
 
-NEW_W_REF = W_REF - 2 * TL_BORDER_X + 2 * PADDING
-NEW_H_REF = int(1.55 * NEW_W_REF) # 1.55 is ratio after border-cropped
-
+NEW_W_REF = W_REF - 2 * TL_BORDER_X + 2 * PADDING 
+NEW_H_REF = int(1.573 * NEW_W_REF) # 1.573 is ratio after border-cropped # Based on observation
+ 
 W_RATIO = NEW_W_REF/ W_REF
 H_RATIO = NEW_H_REF/ H_REF
 SCALE_RATIO = (W_RATIO + H_RATIO) / 2
@@ -98,8 +98,8 @@ def get_all_dict(april_tag_dict):
                     y = int(content[1])
                     w = int(content[2]) # Assume w = h
 
-                    adjusted_x = int((int(x) - TL_BORDER_X + PADDING) * W_RATIO)
-                    adjusted_y = int((int(y) - TL_BORDER_Y + PADDING) * H_RATIO)
+                    adjusted_x = (int(x) - TL_BORDER_X + PADDING) 
+                    adjusted_y = (int(y) - TL_BORDER_Y + PADDING)
                     adjusted_w = int(int(w) * SCALE_RATIO)
 
                     temp_dict['id'] = id_rect
