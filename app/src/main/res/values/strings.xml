@@ -5,4 +5,14 @@
     <string name="stop_capture">Stop Capture</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="download">Download</string>
+    <string name="hapus">Hapus</string>
+    <string name="lihat_detail">Lihat detail</string>
+    <string name="lihat_gambar">Lihat gambar</string>
+    <string name="annotated_image">Annotated Image</string>
+    <string name="hasil_pemindaian">Hasil Pemindaian</string>
+    <string name="kembali">Kembali</string>
+    <string name="riwayat_hasil_pemindaian">Riwayat Hasil Pemindaian</string>
+    <string name="detail_hasil_pemindaian">Detail Hasil Pemindaian</string>
+    <string name="april_tag_id_placeholder">April Tag Id Placeholder</string>
+    <string name="placeholder">Placeholder</string>
 </resources>

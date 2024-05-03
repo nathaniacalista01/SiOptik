@@ -49,16 +49,22 @@ class ImageProcessingIntegrationTest {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
 
         val apriltagId = 101
-        val ocrMock = OcrMock()
+        val ocrMock = OcrMock(appContext)
         val jsonTemplate = ocrMock.detect(null, apriltagId)
         val jsonFileAdapter = JsonFileAdapter()
         val jsonUri = jsonFileAdapter.saveJsonFile(jsonTemplate, appContext)
 
         val writtenJsonTemplate = jsonFileAdapter.readJsonFile(jsonUri.toFile().name, appContext)
+        println("Intended JSON template:")
+        println(jsonTemplate.toString())
+        println()
+        println("Written JSON template: ")
+        println(writtenJsonTemplate.toString())
         assert(writtenJsonTemplate.toString() == jsonTemplate.toString())
 
         val riwayatToInsert = RiwayatEntity(
             0,
+            apriltagId,
             Date(),
             jsonUri.toString(),
             "originalImageUri",

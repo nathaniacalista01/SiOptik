@@ -8,22 +8,5 @@
         android:id="@+id/halamanUtama"
         android:name="com.sioptik.main.HalamanUtama"
         android:label="Halaman Utama"
-        tools:layout="@layout/fragment_halaman_utama">
-        <action
-            android:id="@+id/action_halamanUtama_to_riwayat"
-            app:destination="@id/riwayat" />
-        <action
-            android:id="@+id/action_halamanUtama_to_gambar"
-            app:destination="@id/gambar" />
-    </fragment>
-    <fragment
-        android:id="@+id/riwayat"
-        android:name="com.sioptik.main.Riwayat"
-        android:label="Riwayat"
-        tools:layout="@layout/fragment_riwayat"/>
-    <fragment
-        android:id="@+id/gambar"
-        android:name="com.sioptik.main.Gambar"
-        android:label="Gambar"
-        tools:layout="@layout/fragment_gambar" />
+        tools:layout="@layout/fragment_halaman_utama"/>
 </navigation>

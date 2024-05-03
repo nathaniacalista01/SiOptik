@@ -4,13 +4,17 @@ import com.google.gson.GsonBuilder
 
 class JsonTemplate(
     var fieldNames: Array<String>,
+    val apriltagId: Int
 ) {
-    private val dictionary =  hashMapOf<String, Int>()
+    private val dictionary =  linkedMapOf<String, Int>()
     private val gsonBuilder = GsonBuilder().apply {
         setPrettyPrinting()
     };
     private val gson = gsonBuilder.create();
 
+    init {
+        dictionary["apriltagId"] = apriltagId
+    }
     fun entry(fieldName: String, value: Int) {
         if (!fieldNames.contains(fieldName)) {
             throw Exception("Invalid Field Name")

@@ -17,7 +17,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp">
-
             <TextView
                 android:id="@+id/page_title_text"
                 android:layout_width="match_parent"
@@ -30,6 +29,7 @@
                 android:textColor="@color/black"
                 android:textSize="24sp"
                 tools:ignore="RtlCompat" />
+
 
             <LinearLayout
                 android:id="@+id/result_image_layout"
