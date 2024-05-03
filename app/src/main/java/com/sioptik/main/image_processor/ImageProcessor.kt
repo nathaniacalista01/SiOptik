@@ -79,8 +79,8 @@ class ImageProcessor {
 
     private fun applyCannyDetection (mat: Mat): Mat {
         val edges = Mat(mat.rows(), mat.cols(), mat.type())
-        Imgproc.Canny(mat, edges, 75.0,  200.0)
-//        Imgproc.Canny(mat, edges, 1000.0,  1100.0) // Ini threshold kinda trial and error, cari yang bagus
+//        Imgproc.Canny(mat, edges, 75.0,  200.0)
+        Imgproc.Canny(mat, edges, 900.0,  1200.0) // Ini threshold kinda trial and error, cari yang bagus
         return edges
     }
 
@@ -130,9 +130,10 @@ class ImageProcessor {
             }
 
         }
-//        if (squares.size > 0){
-//            Log.i("TEST DETECT BOX", "FOUND")
-//        } else {
+        if (squares.size == 0){
+            Log.i("TEST DETECT BOX", "NOT FOUND")
+        }
+//        else {
 //            Log.i("TEST DETECT BOX", "NONE")
 //        }
         return squares

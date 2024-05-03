@@ -23,6 +23,7 @@ import org.json.JSONObject
 import org.opencv.core.Mat
 import org.opencv.core.Rect
 import org.opencv.core.Scalar
+import kotlin.math.sqrt
 
 class HasilPemrosesan : AppCompatActivity() {
     private val viewModel: SharedViewModel by viewModels()
@@ -161,6 +162,7 @@ private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
         val temp_y = (boxData.y * h_ratio).toInt()
         val temp_w = (boxData.w * w_ratio).toInt()
         val temp_h = temp_w
+        val testRect = Rect(temp_x, temp_y, temp_w, temp_h) // Only for testing
 
         val adjusted_x = if (temp_x - searchPadding > 0) (temp_x - searchPadding) else 0
         val adjusted_y = if (temp_y - searchPadding > 0) (temp_y - searchPadding) else 0
@@ -170,18 +172,46 @@ private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
         val end_y = temp_y + temp_h + searchPadding
         val adjusted_h = if (end_y > h) (h - adjusted_y) else (end_y - adjusted_y)
 
-        val new_rect: Rect = Rect(adjusted_x, adjusted_y, adjusted_w, adjusted_h)
+        val searchingRect: Rect = Rect(adjusted_x, adjusted_y, adjusted_w, adjusted_h)
 
         // Crop the searching area
-        val searchingMat: Mat = Mat(processedMat, new_rect)
+        val searchingMat: Mat = Mat(processedMat, searchingRect)
         val boxes = imgProcessor.detectBoxes(searchingMat)
 
+        // All-in
         boxes.forEach { rect ->
             val adjustingRect : Rect = Rect((rect.x + adjusted_x), (rect.y + adjusted_y), rect.width, rect.height)
             boxesContainer.add(adjustingRect)
         }
+
+        // Selection by Center Distance
+//        val chosenRect = boxSearchSelection(boxes, searchingRect, adjusted_x, adjusted_y)
+//        if (chosenRect != null){
+//            val adjustingRect : Rect = Rect((chosenRect.x + adjusted_x), (chosenRect.y + adjusted_y), chosenRect.width, chosenRect.height)
+//            boxesContainer.add(adjustingRect)
+//        }
     }
 
     return boxesContainer
 }
+
+private fun boxSearchSelection(boxes: List<Rect>, searchingRect: Rect, adjusted_x : Int,adjusted_y : Int) : Rect? {
+    // From the list, only select 1
+    val centerSearchX = ((searchingRect.x + searchingRect.width)/2)
+    val centerSearchY = ((searchingRect.y + searchingRect.height)/2)
+    var suitableRect: Rect? = null
+    var minDistance: Double = 999.0
+    boxes.forEach { rect ->
+        val adjustingRect : Rect = Rect((rect.x + adjusted_x), (rect.y + adjusted_y), rect.width, rect.height)
+        val centerBoxX = ((adjustingRect.x + adjustingRect.width)/2)
+        val centerBoxY = ((adjustingRect.y + adjustingRect.height)/2)
+        val distance = sqrt(((centerSearchX - centerBoxX)*(centerSearchX - centerBoxX) + (centerSearchY - centerBoxY)*(centerSearchY - centerBoxY)).toDouble())
+        if (distance < minDistance){
+            suitableRect = rect
+            minDistance = distance
+        }
+    }
+    return suitableRect
+}
+
 
