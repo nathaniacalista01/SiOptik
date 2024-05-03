@@ -70,15 +70,17 @@ class ImageProcessor {
             Imgproc.MORPH_OPEN,
             element
         ) //remove noise
-        Imgproc.dilate(morphMat, morphMat, element)
+
+        // Might be interchangable (https://docs.opencv.org/3.4/d3/dbe/tutorial_opening_closing_hats.html)
         Imgproc.erode(morphMat, morphMat, element)
+        Imgproc.dilate(morphMat, morphMat, element)
         return morphMat
     }
 
     private fun applyCannyDetection (mat: Mat): Mat {
         val edges = Mat(mat.rows(), mat.cols(), mat.type())
-//        Imgproc.Canny(mat, edges, 75.0,  200.0)
-        Imgproc.Canny(mat, edges, 1000.0,  1100.0) // Ini threshold kinda trial and error, cari yang bagus
+        Imgproc.Canny(mat, edges, 75.0,  200.0)
+//        Imgproc.Canny(mat, edges, 1000.0,  1100.0) // Ini threshold kinda trial and error, cari yang bagus
         return edges
     }
 
@@ -114,7 +116,6 @@ class ImageProcessor {
 
             // Processing on mMop2f1 which is in type of MatOfPoint2f
             val approxDistance = Imgproc.arcLength(contour2f, true) * 0.02
-//            val approxDistance = 3.0
             Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true)
 
             val numberVertices = approxCurve.total().toInt()
@@ -123,36 +124,29 @@ class ImageProcessor {
 //                Log.i("TEST APPROX", approxCurve.toString())
                 val rect = Imgproc.boundingRect(MatOfPoint(*approxCurve.toArray()))
                 if (checkBoxesSelection(processedMat, rect)) {
-//                    Log.i("TEST APPROX SELECTED", approxCurve.toString())
+//                    Log.i("TEST APPROX SELECTED", "${approxCurve.toString()} \n ${rect.width}, ${rect.height}")
                     squares.add(rect)
                 }
             }
 
         }
+//        if (squares.size > 0){
+//            Log.i("TEST DETECT BOX", "FOUND")
+//        } else {
+//            Log.i("TEST DETECT BOX", "NONE")
+//        }
         return squares
     }
 
     fun checkBoxesSelection(mat: Mat, rect: Rect) : Boolean{
         val aspect_threshold = 0.1
 
-        // For 1600px Width Image
-        val width_lower_threshold_ref = 20
-        val width_upper_threshold_ref = 70
-        val width_threshold_ref = 1600
-
-        val height_mat_threshold_multiplier = 0.1
-
         // wlt = width lower threshold, wut = width upper threshold
-        val wlt_ratio = width_lower_threshold_ref.toFloat() / width_threshold_ref.toFloat()
-        val wut_ratio = width_upper_threshold_ref.toFloat() / width_threshold_ref.toFloat()
+        // By Experience
+        val wlt = 60
+        val wut = 100
 
-        val h = mat.height()
-        val w = mat.width()
         val aspectRatio = rect.width.toDouble() / rect.height.toDouble()
-
-        // Calc width threshold
-        val width_lower_threshold = (wlt_ratio * w).toInt()
-        val width_upper_threshold = (wut_ratio * w).toInt()
 
         // Check one by one condition
         // Check aspect ratio -> To Avoid Rectangle
@@ -160,13 +154,14 @@ class ImageProcessor {
             return false
         }
         // Check size -> To avoid Noises and Big Box
-        if (rect.width <= width_lower_threshold || rect.width >= width_upper_threshold){
+        if (rect.width <= wlt || rect.width >= wut){
             return false
         }
+
         // Check location -> To avoid April Tag and Borders (Contents are almost always in the middle level of height)
-        if (rect.y < h * height_mat_threshold_multiplier || rect.y > h - (h * height_mat_threshold_multiplier)){
-            return false
-        }
+//        if (rect.y < h * height_mat_threshold_multiplier || rect.y > h - (h * height_mat_threshold_multiplier)){
+//            return false
+//        }
         return true
     }
 

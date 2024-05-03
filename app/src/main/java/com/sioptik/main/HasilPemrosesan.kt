@@ -140,15 +140,13 @@ private fun cropBoxes(bitmap: Bitmap, boxes: List<Rect>) : List<Bitmap> {
 
 private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
 
-//     Previous Algorithm (Without List<BoxData>)
-//    val imgProcessor = ImageProcessor()
-//    // Initial Mat
-//    val originalMat = imgProcessor.convertBitmapToMat(bitmap)
-//    val processedMat = imgProcessor.preprocessImage(originalMat)
+    val imgProcessor = ImageProcessor()
+    // Initial Mat
+    val originalMat = imgProcessor.convertBitmapToMat(bitmap)
+    val processedMat = imgProcessor.preprocessImage(originalMat)
 //    // Detect Boxes
-//    val boxes = imgProcessor.detectBoxes(processedMat)
 
-    val boxes = mutableListOf<Rect>()
+    val boxesContainer = mutableListOf<Rect>()
     val w = bitmap.width
     val h = bitmap.height
     val ref_w = boxesData.w_ref
@@ -157,16 +155,33 @@ private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
     val h_ratio = h.toFloat() / ref_h.toFloat()
 
     val boxesRectData = boxesData.data.boxes
+    val searchPadding = 150;
     boxesRectData.forEach { boxData ->
-        val adjusted_x = (boxData.x * w_ratio).toInt()
-        val adjusted_y = (boxData.y * h_ratio).toInt()
-        val adjusted_w = (boxData.w * w_ratio).toInt()
+        val temp_x = (boxData.x * w_ratio).toInt()
+        val temp_y = (boxData.y * h_ratio).toInt()
+        val temp_w = (boxData.w * w_ratio).toInt()
+        val temp_h = temp_w
 
-        val new_rect = Rect(adjusted_x, adjusted_y, adjusted_w, adjusted_w)
-        Log.i("TEST NEW RECT", new_rect.toString())
-        boxes.add(new_rect)
+        val adjusted_x = if (temp_x - searchPadding > 0) (temp_x - searchPadding) else 0
+        val adjusted_y = if (temp_y - searchPadding > 0) (temp_y - searchPadding) else 0
+
+        val end_x = temp_x + temp_w + searchPadding
+        val adjusted_w = if (end_x > w) (w - adjusted_x) else (end_x - adjusted_x)
+        val end_y = temp_y + temp_h + searchPadding
+        val adjusted_h = if (end_y > h) (h - adjusted_y) else (end_y - adjusted_y)
+
+        val new_rect: Rect = Rect(adjusted_x, adjusted_y, adjusted_w, adjusted_h)
+
+        // Crop the searching area
+        val searchingMat: Mat = Mat(processedMat, new_rect)
+        val boxes = imgProcessor.detectBoxes(searchingMat)
+
+        boxes.forEach { rect ->
+            val adjustingRect : Rect = Rect((rect.x + adjusted_x), (rect.y + adjusted_y), rect.width, rect.height)
+            boxesContainer.add(adjustingRect)
+        }
     }
 
-    return boxes
+    return boxesContainer
 }
 
