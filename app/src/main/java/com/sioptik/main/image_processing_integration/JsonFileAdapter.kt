@@ -40,12 +40,19 @@ class JsonFileAdapter {
         }
 
         val gsonBuilder = GsonBuilder().create()
-        val type = object: TypeToken<HashMap<String, Int>>(){}.type
+        val type = object: TypeToken<LinkedHashMap<String, Int>>(){}.type
         val jsonString = file.readText(Charsets.UTF_8)
-        val result = gsonBuilder.fromJson<Map<String, Int>>(jsonString, type)
-        val jsonTemplate = JsonTemplate(result.keys.toTypedArray())
+        val result = gsonBuilder.fromJson<LinkedHashMap<String, Int>>(jsonString, type)
+        val apriltagId = result["apriltagId"] ?: throw Exception("apriltagId field not found in json file")
+        val fieldNames = result.keys.toTypedArray().filter {
+            it != "apriltagId"
+        }.toTypedArray()
+
+        val jsonTemplate = JsonTemplate(fieldNames, apriltagId)
         for (entry in result) {
-            jsonTemplate.entry(entry.key, entry.value)
+            if (entry.key != "apriltagId") {
+                jsonTemplate.entry(entry.key, entry.value)
+            }
         }
 
         return jsonTemplate

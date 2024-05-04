@@ -1,17 +1,13 @@
 package com.sioptik.main
 
 import android.Manifest
-import android.content.ContentResolver
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Matrix
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.util.Log
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
@@ -25,16 +21,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.sioptik.main.camera_processor.CameraProcessor
+import com.sioptik.main.camera_processor.DetectionThread
 import com.sioptik.main.databinding.KameraBinding
-import com.sioptik.main.image_processor.ImageProcessor
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
-import java.nio.ByteBuffer
-import java.text.SimpleDateFormat
-import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -42,6 +30,7 @@ class Kamera : AppCompatActivity() {
     private lateinit var viewBinding: KameraBinding
     private var imageCapture: ImageCapture? = null
     private lateinit var cameraExecutor: ExecutorService
+    private var mDetectionThread: DetectionThread? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +39,9 @@ class Kamera : AppCompatActivity() {
 
         if (allPermissionsGranted()) {
             startCamera()
+
+            // Make the screen stay awake
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
@@ -57,6 +49,8 @@ class Kamera : AppCompatActivity() {
         viewBinding.captureButton.setOnClickListener { takePhoto() }
         viewBinding.pickImage.setOnClickListener { pickImageFromGallery() }
         cameraExecutor = Executors.newSingleThreadExecutor()
+
+        Log.i("INFO", "STARTING DETECTION THREAD")
     }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
@@ -106,7 +100,10 @@ class Kamera : AppCompatActivity() {
 
                 // Bind use cases to camera
                 cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageCapture)
+                    this, cameraSelector, preview, imageCapture
+                )
+
+                startDetectionThread()
 
             } catch(exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
@@ -119,6 +116,14 @@ class Kamera : AppCompatActivity() {
         val intent = Intent(Intent.ACTION_PICK)
         intent.type="image/*"
         startActivityForResult(intent, IMAGE_REQUEST_CODE )
+    }
+
+    private fun startDetectionThread() {
+        if (imageCapture != null && (mDetectionThread == null || !mDetectionThread!!.isInterrupted)) {
+            mDetectionThread = DetectionThread(baseContext, viewBinding.borderTl, viewBinding.borderTr, viewBinding.borderBl, viewBinding.borderBr, imageCapture!!)
+            mDetectionThread!!.initialize()
+            mDetectionThread!!.start()
+        }
     }
 
     @Deprecated("Deprecated in Java")
@@ -195,6 +200,35 @@ class Kamera : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
+        if (mDetectionThread != null) {
+            mDetectionThread!!.interrupt()
+            mDetectionThread!!.destroy()
+            try {
+                mDetectionThread!!.join()
+            } catch (e: InterruptedException) {
+                e.printStackTrace()
+            }
+            mDetectionThread = null
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (mDetectionThread != null) {
+            mDetectionThread!!.interrupt() // Signal the thread to stop
+            try {
+                mDetectionThread!!.join() // Wait for the thread to finish
+            } catch (e: InterruptedException) {
+                e.printStackTrace()
+            }
+            mDetectionThread = null // Clear the reference
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        startCamera()
+        startDetectionThread()
     }
 
 
