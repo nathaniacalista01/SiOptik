@@ -19,6 +19,7 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 class CameraProcessor {
+    val WIDTH = 2400;
 
     fun imageProxyToBitmap(image: ImageProxy): Bitmap? {
         val planeProxy = image.planes[0]

@@ -94,8 +94,10 @@ class ValidasiGambar : AppCompatActivity() {
                 } else {
                     // Save Cropped Image
                     val cameraProcessor = CameraProcessor()
+                    val imageProcessor = ImageProcessor()
                     val tempFile = cameraProcessor.createTempFile(this, "CROPPED")
-                    cameraProcessor.saveBitmapToFile(processedBitmap, tempFile)
+                    val resizedBitmap = imageProcessor.resizeImage(processedBitmap, cameraProcessor.WIDTH)
+                    cameraProcessor.saveBitmapToFile(resizedBitmap, tempFile)
 
                     val savedUri = FileProvider.getUriForFile(
                         this,
@@ -106,7 +108,7 @@ class ValidasiGambar : AppCompatActivity() {
                     sendButton.setOnClickListener {
                         Intent(this, HasilPemrosesan::class.java).also { previewIntent ->
                             previewIntent.putExtra("image_uri", savedUri.toString())
-                            previewIntent.putExtra("apriltag_id", apriltag.id)
+                            previewIntent.putExtra("april_tag", apriltag.id.toString())
                             startActivity(previewIntent)
                         }
                     }

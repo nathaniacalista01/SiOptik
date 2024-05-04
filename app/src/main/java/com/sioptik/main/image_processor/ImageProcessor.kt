@@ -25,8 +25,8 @@ class ImageProcessor {
         val blurredMat = applyGaussianBlur(grayMat)
         val thresholdMat = applyAdaptiveThreshold(blurredMat)
         val morphMat = applyMorphologicalOperations(thresholdMat)
-        val cannyMat = applyCannyDetection(morphMat)
-        return cannyMat
+//        val cannyMat = applyCannyDetection(morphMat)
+        return morphMat
     }
 
     fun convertToGray(colorMat: Mat): Mat {
@@ -70,15 +70,17 @@ class ImageProcessor {
             Imgproc.MORPH_OPEN,
             element
         ) //remove noise
-        Imgproc.dilate(morphMat, morphMat, element)
+
+        // Might be interchangable (https://docs.opencv.org/3.4/d3/dbe/tutorial_opening_closing_hats.html)
         Imgproc.erode(morphMat, morphMat, element)
+        Imgproc.dilate(morphMat, morphMat, element)
         return morphMat
     }
 
     private fun applyCannyDetection (mat: Mat): Mat {
         val edges = Mat(mat.rows(), mat.cols(), mat.type())
 //        Imgproc.Canny(mat, edges, 75.0,  200.0)
-        Imgproc.Canny(mat, edges, 1000.0,  1100.0) // Ini threshold kinda trial and error, cari yang bagus
+        Imgproc.Canny(mat, edges, 900.0,  1200.0) // Ini threshold kinda trial and error, cari yang bagus
         return edges
     }
 
@@ -114,31 +116,32 @@ class ImageProcessor {
 
             // Processing on mMop2f1 which is in type of MatOfPoint2f
             val approxDistance = Imgproc.arcLength(contour2f, true) * 0.02
-//            val approxDistance = 3.0
             Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true)
 
             val numberVertices = approxCurve.total().toInt()
 
             if (numberVertices in 4..6) {
-                Log.i("TEST APPROX", approxCurve.toString())
                 val rect = Imgproc.boundingRect(MatOfPoint(*approxCurve.toArray()))
                 if (checkBoxesSelection(processedMat, rect)) {
-                    Log.i("TEST APPROX SELECTED", approxCurve.toString())
                     squares.add(rect)
                 }
             }
 
+        }
+        if (squares.size == 0){
+            Log.i("TEST DETECT BOX", "NOT FOUND")
         }
         return squares
     }
 
     fun checkBoxesSelection(mat: Mat, rect: Rect) : Boolean{
         val aspect_threshold = 0.1
-        val width_lower_threshold = 20
-        val width_upper_threshold = 60
-        val height_mat_threshold_multiplier = 0.1
 
-        val h = mat.height()
+        // wlt = width lower threshold, wut = width upper threshold
+        // By Experience
+        val wlt = 50
+        val wut = 100
+
         val aspectRatio = rect.width.toDouble() / rect.height.toDouble()
 
         // Check one by one condition
@@ -147,13 +150,14 @@ class ImageProcessor {
             return false
         }
         // Check size -> To avoid Noises and Big Box
-        if (rect.width <= width_lower_threshold || rect.width >= width_upper_threshold){
+        if (rect.width <= wlt || rect.width >= wut){
             return false
         }
+
         // Check location -> To avoid April Tag and Borders (Contents are almost always in the middle level of height)
-        if (rect.y < h * height_mat_threshold_multiplier || rect.y > h - (h * height_mat_threshold_multiplier)){
-            return false
-        }
+//        if (rect.y < h * height_mat_threshold_multiplier || rect.y > h - (h * height_mat_threshold_multiplier)){
+//            return false
+//        }
         return true
     }
 
@@ -179,7 +183,6 @@ class ImageProcessor {
         if (!rectangles.isEmpty()) {
             // Create a copy of the processed image to draw on
             val visualizedImage = processedMat
-
             // Havent handled for RGBA and Unkown
             if (detectColorSpace(visualizedImage) == "Grayscale") {
                 Imgproc.cvtColor(visualizedImage, visualizedImage, Imgproc.COLOR_GRAY2BGR)
@@ -282,4 +285,13 @@ class ImageProcessor {
         return null
     }
 
+    fun resizeImage(bitmap: Bitmap, width: Int): Bitmap {
+        val w = bitmap.width
+        val h = bitmap.height
+        val aspRat = h.toFloat() / w.toFloat()
+        val W = width
+        val H = (W * aspRat).toInt()
+        val b = Bitmap.createScaledBitmap(bitmap, W, H, false)
+        return b
+    }
 }

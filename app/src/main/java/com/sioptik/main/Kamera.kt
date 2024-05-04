@@ -31,7 +31,6 @@ import java.util.concurrent.Executors
 
 class Kamera : AppCompatActivity() {
     private lateinit var viewBinding: KameraBinding
-    private val MAX_WIDTH = 1600;
     private var imageCapture: ImageCapture? = null
     private lateinit var cameraExecutor: ExecutorService
     private var mDetectionThread: DetectionThread? = null
@@ -138,10 +137,10 @@ class Kamera : AppCompatActivity() {
         if(requestCode == IMAGE_REQUEST_CODE && resultCode == RESULT_OK){
             data?.data?.let { uri ->
 
-                val isTooLarge = cameraProcessor.isImageTooWide(contentResolver, uri, MAX_WIDTH)
+                val isTooLarge = cameraProcessor.isImageTooWide(contentResolver, uri, cameraProcessor.WIDTH)
                 if (isTooLarge){
                     Toast.makeText(this, "The Image is scaled down", Toast.LENGTH_LONG).show()
-                    val scaledBitmap = cameraProcessor.scaleDownImage(contentResolver, uri, MAX_WIDTH)
+                    val scaledBitmap = cameraProcessor.scaleDownImage(contentResolver, uri, cameraProcessor.WIDTH)
 
                     val tempFile = cameraProcessor.createTempFile(this@Kamera, "GALLERY")
                     cameraProcessor.saveBitmapToFile(scaledBitmap, tempFile)
@@ -178,7 +177,7 @@ class Kamera : AppCompatActivity() {
                     Log.i("INFO", "BERHASIL")
                     super.onCaptureSuccess(image)
                     val bitmap = cameraProcessor.imageProxyToBitmap(image)
-                    val scaledBitmap = cameraProcessor.scaleDownBitmap(bitmap!!, MAX_WIDTH)
+                    val scaledBitmap = cameraProcessor.scaleDownBitmap(bitmap!!, cameraProcessor.WIDTH)
 
                     image.close()
 
