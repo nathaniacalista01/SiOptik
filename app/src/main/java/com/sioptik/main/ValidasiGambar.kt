@@ -6,9 +6,11 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
@@ -17,6 +19,9 @@ import com.sioptik.main.apriltag.AprilTagNative
 import com.sioptik.main.camera_processor.CameraProcessor
 import com.sioptik.main.image_processor.ImageProcessor
 import com.sioptik.main.processing_result.FullScreenImageActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.opencv.core.Mat
 import org.opencv.core.Rect
 import org.opencv.core.Scalar
@@ -27,11 +32,17 @@ class ValidasiGambar : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.i("VALIDASI", "BARU MASUK")
         setContentView(R.layout.validasi_gambar)
 
         val retryButton = findViewById<Button>(R.id.retryButton)
         val sendButton = findViewById<Button>(R.id.sendButton)
         val imageView: ImageView = findViewById(R.id.imageValidation)
+        val progressBar: ProgressBar = findViewById(R.id.progressBar)
+        val loadingOverlayBg: View = findViewById(R.id.loadingOverlayBg)
+
+        // Show the loading indicator immediately
+        showLoading(true, progressBar, loadingOverlayBg)
 
         retryButton.setOnClickListener {
             val cameraIntent = Intent(this, Kamera::class.java)
@@ -44,29 +55,36 @@ class ValidasiGambar : AppCompatActivity() {
         AprilTagNative.apriltag_init("tag36h10", 2, 1.0, 0.0, 4)
 
         if (imageUriString != null) {
-            // Set Initial Image First
             val imageUri = Uri.parse(imageUriString)
             imageView.setImageURI(imageUri)
-            try {
-                val bitmap = MediaStore.Images.Media.getBitmap(this.contentResolver, imageUri)
+            CoroutineScope(Dispatchers.IO).launch {
+                val imageUri = Uri.parse(imageUriString)
+                processImage(imageUri, imageView, progressBar, loadingOverlayBg, apriltagTagView, sendButton)
+            }
+        } else {
+            Toast.makeText(this, "Image is NULL", Toast.LENGTH_SHORT).show()
+            showLoading(false, progressBar, loadingOverlayBg) // Hide loading because nothing to process
+        }
+    }
 
-                // Process  Image
-                val borders = processBorderDetection(bitmap)
-                processedBitmap = processAndCropImage(bitmap, borders)
 
-                // April Tag Process
-                val apriltag = processAprilTagDetection(processedBitmap)
-                if (apriltag != null){
+    private fun processImage(imageUri: Uri, imageView: ImageView, progressBar: ProgressBar, loadingOverlayBg: View, apriltagTagView: Button, sendButton: Button) {
+        try {
+            val bitmap = MediaStore.Images.Media.getBitmap(this.contentResolver, imageUri)
+            val borders = processBorderDetection(bitmap)
+            val processedBitmap = processAndCropImage(bitmap, borders)
+            val apriltag = processAprilTagDetection(processedBitmap)
+
+            runOnUiThread {
+                if (apriltag != null) {
                     apriltagTagView.text = apriltag.id.toString()
                 }
 
                 imageView.setImageBitmap(processedBitmap)
-                // imageView.scaleType = ImageView.ScaleType.CENTER_CROP
-                // imageView.layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
 
-                // Check if Borders and april tag are detected
-                if (borders.size != 4 || apriltag == null){
-                    if (borders.size != 4){
+                // Check if Borders and AprilTag are detected
+                if (borders.size != 4 || apriltag == null) {
+                    if (borders.size != 4) {
                         Toast.makeText(this, "Borders are invalid", Toast.LENGTH_SHORT).show()
                     }
                     if (apriltag == null) {
@@ -86,22 +104,34 @@ class ValidasiGambar : AppCompatActivity() {
                     )
 
                     sendButton.setOnClickListener {
-                        Intent(this, HasilPemrosesan::class.java).also { previewIntent ->
-                            previewIntent.putExtra("image_uri", savedUri.toString())
-                            startActivity(previewIntent)
-                        }
+                        val previewIntent = Intent(this, HasilPemrosesan::class.java)
+                        previewIntent.putExtra("image_uri", savedUri.toString())
+                        startActivity(previewIntent)
                     }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(this, "Failed to load or process image", Toast.LENGTH_SHORT).show()
-                sendButton.isEnabled = false
-            }
-        } else {
-            Toast.makeText(this, "Image is NULL", Toast.LENGTH_SHORT).show()
-        }
 
+                // Processing complete, hide loading indicator
+                showLoading(false, progressBar, loadingOverlayBg)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Failed to load or process image", Toast.LENGTH_SHORT).show()
+            sendButton.isEnabled = false
+            showLoading(false, progressBar, loadingOverlayBg)
+        }
     }
+
+    private fun showLoading(show: Boolean, progressBar: ProgressBar, loadingOverlay: View) {
+        if (show) {
+            progressBar.visibility = View.VISIBLE
+            loadingOverlay.visibility = View.VISIBLE
+        } else {
+            progressBar.visibility = View.GONE
+            loadingOverlay.visibility = View.GONE
+        }
+    }
+
+
 
     private fun processBorderDetection(bitmap: Bitmap) : List<Rect> {
         val imgProcessor = ImageProcessor()
