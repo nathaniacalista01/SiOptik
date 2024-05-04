@@ -25,8 +25,8 @@ class ImageProcessor {
         val blurredMat = applyGaussianBlur(grayMat)
         val thresholdMat = applyAdaptiveThreshold(blurredMat)
         val morphMat = applyMorphologicalOperations(thresholdMat)
-        val cannyMat = applyCannyDetection(morphMat)
-        return cannyMat
+//        val cannyMat = applyCannyDetection(morphMat)
+        return morphMat
     }
 
     fun convertToGray(colorMat: Mat): Mat {
@@ -144,7 +144,7 @@ class ImageProcessor {
 
         // wlt = width lower threshold, wut = width upper threshold
         // By Experience
-        val wlt = 60
+        val wlt = 50
         val wut = 100
 
         val aspectRatio = rect.width.toDouble() / rect.height.toDouble()

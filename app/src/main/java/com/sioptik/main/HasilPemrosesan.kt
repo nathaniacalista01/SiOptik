@@ -67,6 +67,8 @@ class HasilPemrosesan : AppCompatActivity() {
 
                 // Process Image
                 val detectedBoxes = detectBoxes(bitmap, boxesData!!)
+                Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData.data.num_of_boxes}")
+                Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
                 val processedBitmap = processImage(bitmap, detectedBoxes)
 
                 // Crop Detected Boxes for OCR
@@ -122,7 +124,7 @@ private fun processImage (bitmap: Bitmap, boxes: List<Rect>) : Bitmap {
     val originalMat = imgProcessor.convertBitmapToMat(bitmap)
     val processedMat = imgProcessor.preprocessImage(originalMat) // Maybe will be used but better save it first
     // Contour Boxes
-    val resultImage = imgProcessor.visualizeContoursAndRectangles(processedMat, boxes, Scalar(255.0, .0, 0.0), true, 2)
+    val resultImage = imgProcessor.visualizeContoursAndRectangles(processedMat, boxes, Scalar(255.0, .0, 0.0), true, 4)
     return imgProcessor.convertMatToBitmap(resultImage)
 }
 
@@ -146,8 +148,8 @@ private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
     // Initial Mat
     val originalMat = imgProcessor.convertBitmapToMat(bitmap)
     val processedMat = imgProcessor.preprocessImage(originalMat)
-//    // Detect Boxes
 
+    // Detect Boxes
     var boxesContainer = mutableListOf<Rect>()
     val w = bitmap.width
     val h = bitmap.height
@@ -186,7 +188,7 @@ private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
         }
 
         // Selection by Center Distance
-//        val chosenRect = boxSearchSelection(boxes, searchingRect, adjusted_x, adjusted_y)
+//        val chosenRect = boxSearchSelectionBasedOnCenter(boxes, searchingRect, adjusted_x, adjusted_y)
 //        if (chosenRect != null){
 //            val adjustingRect : Rect = Rect((chosenRect.x + adjusted_x), (chosenRect.y + adjusted_y), chosenRect.width, chosenRect.height)
 //            boxesContainer.add(adjustingRect)
@@ -194,12 +196,14 @@ private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
     }
 
     // Eliminate Redundant Boxes
-    val cleansedBoxesContainer = eliminateRedundantBoxes(boxesContainer)
+    val similarityCleansedBoxesContainer = eliminateRedundantBoxes(boxesContainer)
+    // Eliminate y_level isolated Boxes
+    val isolatedCleansedBoxesContainer = eliminateIsolatedBoxes(similarityCleansedBoxesContainer)
 
-    return cleansedBoxesContainer
+    return isolatedCleansedBoxesContainer
 }
 
-//private fun boxSearchSelection(boxes: List<Rect>, searchingRect: Rect, adjusted_x : Int,adjusted_y : Int) : Rect? {
+//private fun boxSearchSelectionBasedOnCenter(boxes: List<Rect>, searchingRect: Rect, adjusted_x : Int,adjusted_y : Int) : Rect? {
 //    // From the list, only select 1
 //    val centerSearchX = ((searchingRect.x + searchingRect.width)/2)
 //    val centerSearchY = ((searchingRect.y + searchingRect.height)/2)
@@ -220,14 +224,16 @@ private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
 
 private fun eliminateRedundantBoxes(boxes :List<Rect>) : List<Rect>{
     val boxesContainer = mutableListOf<Rect>()
-    val differenceThreshold = 5
+    val differenceThreshold = 20
+    val scaleThreshold = 10
     boxes.forEach { checkingRect ->
         var foundSimilar = false
         boxesContainer.forEachIndexed { index, iteratingRect ->
             val checkSimilarity = abs(iteratingRect.x - checkingRect.x) < differenceThreshold && abs(iteratingRect.y - checkingRect.y) < differenceThreshold
-            Log.i("TEST CHECK SIMILARITY", "${checkingRect}, ${iteratingRect}, ${checkSimilarity}")
             if (checkSimilarity){
-                val newRect = Rect((iteratingRect.x + checkingRect.x)/2, (iteratingRect.y + checkingRect.y)/2, checkingRect.width, checkingRect.height)
+                val newWidth = if (checkingRect.width > iteratingRect.width) checkingRect.width else iteratingRect.width
+                val newHeight = if (checkingRect.height > iteratingRect.height) checkingRect.height else iteratingRect.height
+                val newRect = Rect((iteratingRect.x + checkingRect.x)/2, (iteratingRect.y + checkingRect.y)/2, newWidth, newHeight)
                 boxesContainer[index] = newRect
                 foundSimilar = true
             }
@@ -236,7 +242,29 @@ private fun eliminateRedundantBoxes(boxes :List<Rect>) : List<Rect>{
         if (!foundSimilar) {
             boxesContainer.add(checkingRect)
         }
-        Log.i("TEST CHECK SIMILARITY", "=== BORDER ===")
+    }
+    return boxesContainer
+}
+
+private fun eliminateIsolatedBoxes(boxes : List<Rect>) : List<Rect> {
+    val boxesContainer = mutableListOf<Rect>()
+    val differenceThreshold = 20
+    val notIsolatedThreshold = 1
+    boxes.forEachIndexed { checkingIdx, checkingRect ->
+        var notIsolatedCount = 0
+        boxes.forEachIndexed{ iteratingIdx, iteratingRect ->
+            // Make sure that those Rects are not the same Rect
+            if (iteratingIdx != checkingIdx){
+                val checkNotIsolated = abs(iteratingRect.y - checkingRect.y) < differenceThreshold
+                if (checkNotIsolated){
+                    notIsolatedCount++
+                }
+            }
+        }
+
+        if (notIsolatedCount >= notIsolatedThreshold){
+            boxesContainer.add(checkingRect)
+        }
     }
     return boxesContainer
 }
