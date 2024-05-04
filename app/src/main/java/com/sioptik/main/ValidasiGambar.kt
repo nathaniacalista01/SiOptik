@@ -104,9 +104,11 @@ class ValidasiGambar : AppCompatActivity() {
                     )
 
                     sendButton.setOnClickListener {
-                        val previewIntent = Intent(this, HasilPemrosesan::class.java)
-                        previewIntent.putExtra("image_uri", savedUri.toString())
-                        startActivity(previewIntent)
+                        Intent(this, HasilPemrosesan::class.java).also { previewIntent ->
+                            previewIntent.putExtra("image_uri", savedUri.toString())
+                            previewIntent.putExtra("apriltag_id", apriltag.id)
+                            startActivity(previewIntent)
+                        }
                     }
                 }
 

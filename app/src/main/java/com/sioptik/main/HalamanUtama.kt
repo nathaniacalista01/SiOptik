@@ -21,6 +21,10 @@ class HalamanUtama : Fragment() {
             val cameraIntent = Intent(activity, Kamera::class.java)
             startActivity(cameraIntent)
         }
+        binding.historyButton.setOnClickListener {
+            val historyIntent = Intent(activity, Riwayat::class.java)
+            startActivity(historyIntent)
+        }
 
         return binding.root
     }

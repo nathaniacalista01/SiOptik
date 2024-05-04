@@ -6,11 +6,15 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
+import com.sioptik.main.image_processing_integration.JsonFileAdapter
+import com.sioptik.main.image_processing_integration.JsonTemplateFactory
+import com.sioptik.main.image_processing_integration.OcrMock
 import com.sioptik.main.image_processor.ImageProcessor
 import com.sioptik.main.processing_result.DynamicContentFragment
 import com.sioptik.main.processing_result.FullScreenImageActivity
@@ -18,16 +22,28 @@ import com.sioptik.main.processing_result.SharedViewModel
 import com.sioptik.main.processing_result.json_parser.parser.JsonParser
 import org.opencv.core.Mat
 import org.opencv.core.Rect
+import com.sioptik.main.riwayat_repository.RiwayatEntity
+import com.sioptik.main.riwayat_repository.RiwayatViewModel
+import com.sioptik.main.riwayat_repository.RiwayatViewModelFactory
 import org.opencv.core.Scalar
+import java.util.Date
+import kotlin.random.Random
 
 class HasilPemrosesan : AppCompatActivity() {
     private val viewModel: SharedViewModel by viewModels()
+    private val riwayatViewModel: RiwayatViewModel by viewModels() {
+        RiwayatViewModelFactory(this)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hasil_pemrosesan)
 
         val imageView: ImageView = findViewById(R.id.processed_image)
+        val finishButton: Button = findViewById(R.id.finish_button)
+
+        Log.i("TEST HASIL", intent.getStringExtra("image_uri").toString())
+
         val imageUriString = intent.getStringExtra("image_uri")
 
 
@@ -60,34 +76,29 @@ class HasilPemrosesan : AppCompatActivity() {
 
         }
 
-        val jsonString = """
-            {
-              "title": "Hasil Pemilihan Presiden RI",
-              "description": "Deskripsi Hihihi",
-              "aprilTagId": 100,
-              "tpsId": 10,
-              "candidates": [
-                {
-                  "orderNumber": 1,
-                  "choiceName": "Alis",
-                  "totalVoters": 500000
-                },
-                {
-                  "orderNumber": 2,
-                  "choiceName": "Prabski",
-                  "totalVoters": 450000
-                },
-                {
-                  "orderNumber": 3,
-                  "choiceName": "Skipper",
-                  "totalVoters": 350000
-                }
-              ]
-            }
-            """.trimIndent()
+        val apriltagId = intent.getIntExtra("apriltag_id", 0)
+        val ocr = OcrMock(this)
+        val jsonTemplate = ocr.detect(null, apriltagId)
 
-        val jsonData = JsonParser.parse(jsonString)
-        viewModel.jsonData = jsonData
+        viewModel.jsonTemplate = jsonTemplate
+
+        finishButton.setOnClickListener {
+            val viewModelJsonTemplate = viewModel.jsonTemplate
+            if (viewModelJsonTemplate != null && imageUriString != null) {
+                val jsonFileAdapter = JsonFileAdapter()
+                val jsonFileUri = jsonFileAdapter.saveJsonFile(viewModelJsonTemplate, this)
+              val riwayat = RiwayatEntity(
+                  0,
+                  viewModelJsonTemplate.apriltagId,
+                  Date(),
+                  jsonFileUri.toString(),
+                  imageUriString,
+                  imageUriString
+              )
+                riwayatViewModel.insertRiwayat(riwayat);
+            }
+
+        }
 
         supportFragmentManager.commit {
             replace(R.id.fragmentContainerView, DynamicContentFragment())
