@@ -23,6 +23,7 @@ import org.json.JSONObject
 import org.opencv.core.Mat
 import org.opencv.core.Rect
 import org.opencv.core.Scalar
+import kotlin.math.abs
 import kotlin.math.sqrt
 
 class HasilPemrosesan : AppCompatActivity() {
@@ -147,7 +148,7 @@ private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
     val processedMat = imgProcessor.preprocessImage(originalMat)
 //    // Detect Boxes
 
-    val boxesContainer = mutableListOf<Rect>()
+    var boxesContainer = mutableListOf<Rect>()
     val w = bitmap.width
     val h = bitmap.height
     val ref_w = boxesData.w_ref
@@ -192,26 +193,51 @@ private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
 //        }
     }
 
+    // Eliminate Redundant Boxes
+    val cleansedBoxesContainer = eliminateRedundantBoxes(boxesContainer)
+
+    return cleansedBoxesContainer
+}
+
+//private fun boxSearchSelection(boxes: List<Rect>, searchingRect: Rect, adjusted_x : Int,adjusted_y : Int) : Rect? {
+//    // From the list, only select 1
+//    val centerSearchX = ((searchingRect.x + searchingRect.width)/2)
+//    val centerSearchY = ((searchingRect.y + searchingRect.height)/2)
+//    var suitableRect: Rect? = null
+//    var minDistance: Double = 999.0
+//    boxes.forEach { rect ->
+//        val adjustingRect : Rect = Rect((rect.x + adjusted_x), (rect.y + adjusted_y), rect.width, rect.height)
+//        val centerBoxX = ((adjustingRect.x + adjustingRect.width)/2)
+//        val centerBoxY = ((adjustingRect.y + adjustingRect.height)/2)
+//        val distance = sqrt(((centerSearchX - centerBoxX)*(centerSearchX - centerBoxX) + (centerSearchY - centerBoxY)*(centerSearchY - centerBoxY)).toDouble())
+//        if (distance < minDistance){
+//            suitableRect = rect
+//            minDistance = distance
+//        }
+//    }
+//    return suitableRect
+//}
+
+private fun eliminateRedundantBoxes(boxes :List<Rect>) : List<Rect>{
+    val boxesContainer = mutableListOf<Rect>()
+    val differenceThreshold = 5
+    boxes.forEach { checkingRect ->
+        var foundSimilar = false
+        boxesContainer.forEachIndexed { index, iteratingRect ->
+            val checkSimilarity = abs(iteratingRect.x - checkingRect.x) < differenceThreshold && abs(iteratingRect.y - checkingRect.y) < differenceThreshold
+            Log.i("TEST CHECK SIMILARITY", "${checkingRect}, ${iteratingRect}, ${checkSimilarity}")
+            if (checkSimilarity){
+                val newRect = Rect((iteratingRect.x + checkingRect.x)/2, (iteratingRect.y + checkingRect.y)/2, checkingRect.width, checkingRect.height)
+                boxesContainer[index] = newRect
+                foundSimilar = true
+            }
+        }
+        // If there are no boxes with similarity
+        if (!foundSimilar) {
+            boxesContainer.add(checkingRect)
+        }
+        Log.i("TEST CHECK SIMILARITY", "=== BORDER ===")
+    }
     return boxesContainer
 }
-
-private fun boxSearchSelection(boxes: List<Rect>, searchingRect: Rect, adjusted_x : Int,adjusted_y : Int) : Rect? {
-    // From the list, only select 1
-    val centerSearchX = ((searchingRect.x + searchingRect.width)/2)
-    val centerSearchY = ((searchingRect.y + searchingRect.height)/2)
-    var suitableRect: Rect? = null
-    var minDistance: Double = 999.0
-    boxes.forEach { rect ->
-        val adjustingRect : Rect = Rect((rect.x + adjusted_x), (rect.y + adjusted_y), rect.width, rect.height)
-        val centerBoxX = ((adjustingRect.x + adjustingRect.width)/2)
-        val centerBoxY = ((adjustingRect.y + adjustingRect.height)/2)
-        val distance = sqrt(((centerSearchX - centerBoxX)*(centerSearchX - centerBoxX) + (centerSearchY - centerBoxY)*(centerSearchY - centerBoxY)).toDouble())
-        if (distance < minDistance){
-            suitableRect = rect
-            minDistance = distance
-        }
-    }
-    return suitableRect
-}
-
 
