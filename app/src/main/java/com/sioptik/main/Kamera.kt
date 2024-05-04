@@ -7,6 +7,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.Surface
+import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -25,6 +27,7 @@ import com.sioptik.main.camera_processor.DetectionThread
 import com.sioptik.main.databinding.KameraBinding
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+
 
 class Kamera : AppCompatActivity() {
     private lateinit var viewBinding: KameraBinding
@@ -90,6 +93,7 @@ class Kamera : AppCompatActivity() {
                 }
             imageCapture = ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .setTargetRotation(Surface.ROTATION_0)
                 .build()
             // Select back camera as a default
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -103,7 +107,7 @@ class Kamera : AppCompatActivity() {
                     this, cameraSelector, preview, imageCapture
                 )
 
-                startDetectionThread()
+//                startDetectionThread()
 
             } catch(exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
@@ -160,7 +164,8 @@ class Kamera : AppCompatActivity() {
     private fun takePhoto() {
         val imageCapture = imageCapture ?: return
         val cameraProcessor = CameraProcessor()
-
+        showLoading(true)
+        Log.i("INFO", "TAKE FOTO")
         imageCapture.takePicture(
             ContextCompat.getMainExecutor(this),
             object : ImageCapture.OnImageCapturedCallback() {
@@ -169,6 +174,7 @@ class Kamera : AppCompatActivity() {
                 }
 
                 override fun onCaptureSuccess(image: ImageProxy) {
+                    Log.i("INFO", "BERHASIL")
                     super.onCaptureSuccess(image)
                     val bitmap = cameraProcessor.imageProxyToBitmap(image)
                     val scaledBitmap = cameraProcessor.scaleDownBitmap(bitmap!!, cameraProcessor.WIDTH)
@@ -190,9 +196,18 @@ class Kamera : AppCompatActivity() {
         )
     }
 
+    private fun showLoading(show: Boolean) {
+        viewBinding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
+        viewBinding.loadingOverlayBg.visibility = if (show) View.VISIBLE else View.GONE
+        viewBinding.captureButton.isEnabled = false
+        viewBinding.pickImage.isEnabled = false
+    }
+
     private fun processImageUri(imageUri: Uri) {
         Intent(this@Kamera, ValidasiGambar::class.java).also { previewIntent ->
             previewIntent.putExtra("image_uri", imageUri.toString())
+            showLoading(false)
+            Log.i("KAMERA", "MANGGIL VALIDASI")
             startActivity(previewIntent)
         }
     }
@@ -227,6 +242,8 @@ class Kamera : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        viewBinding.captureButton.isEnabled = true
+        viewBinding.pickImage.isEnabled = true
         startCamera()
         startDetectionThread()
     }

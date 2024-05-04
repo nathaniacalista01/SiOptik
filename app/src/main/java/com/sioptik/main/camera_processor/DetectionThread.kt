@@ -19,8 +19,8 @@ class DetectionThread(private val context: Context, private val borderTl: View, 
     Thread() {
     private val cameraProcessor = CameraProcessor()
     private val cameraExecutor = Executors.newSingleThreadExecutor()
-    private val borderImageDrawable = R.drawable.border_smaller
-    private val borderImageSmallDrawable = R.drawable.border_smallest
+    private val borderImageDrawable = R.drawable.border4
+    private val borderImageSmallDrawable = R.drawable.border7
     private val imgProcessor = ImageProcessor()
     private val borderImage = imgProcessor.loadDrawableImage(context, borderImageDrawable)
     private val borderImageSmall = imgProcessor.loadDrawableImage(context, borderImageSmallDrawable)
