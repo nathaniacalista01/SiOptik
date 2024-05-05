@@ -100,9 +100,13 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.google.devtools.ksp:symbol-processing-api:1.9.22-1.0.17")
 
+    // Room
     val room_version = "2.6.1"
     implementation("androidx.room:room-runtime:$room_version")
     ksp("androidx.room:room-compiler:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
     testImplementation("androidx.room:room-testing:$room_version")
+
+    // Tesseract
+    implementation("cz.adaptech.tesseract4android:tesseract4android:4.7.0")
 }

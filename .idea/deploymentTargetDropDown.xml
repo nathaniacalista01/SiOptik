@@ -2,16 +2,7 @@
 <project version="4">
   <component name="deploymentTargetDropDown">
     <value>
-      <entry key="FormMetadataTest">
-        <State />
-      </entry>
-      <entry key="ImageProcessingIntegrationTest">
-        <State />
-      </entry>
       <entry key="app">
-        <State />
-      </entry>
-      <entry key="testImport() (1)">
         <State />
       </entry>
     </value>

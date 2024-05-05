@@ -8,6 +8,8 @@ plugins {
 buildscript {
     repositories {
         google()
+        mavenCentral()
+        maven(url = "https://jitpack.io")
     }
     dependencies {
         val nav_version = "2.7.7"
