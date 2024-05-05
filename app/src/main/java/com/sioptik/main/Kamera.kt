@@ -107,7 +107,7 @@ class Kamera : AppCompatActivity() {
                     this, cameraSelector, preview, imageCapture
                 )
 
-//                startDetectionThread()
+                startDetectionThread()
 
             } catch(exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
