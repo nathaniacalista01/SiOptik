@@ -176,7 +176,7 @@ class ValidasiGambar : AppCompatActivity() {
 
         // Initial Mat
         val originalMat = imgProcessor.convertBitmapToMat(bitmap)
-        val resultImage = imgProcessor.visualizeContoursAndRectangles(originalMat, borderContainer, Scalar(0.0, 255.0, 255.0), false,6) // Comment out this line to see processed image
+        val resultImage = imgProcessor.visualizeContoursAndBorders(originalMat, borderContainer, Scalar(0.0, 255.0, 255.0), 6) // Comment out this line to see processed image
 
         // Crop
         var croppedResultImage = resultImage

@@ -24,6 +24,7 @@ import com.sioptik.main.processing_result.json_parser.model.BoxMetadata
 import com.sioptik.main.processing_result.json_parser.parser.BoxMetadataParser
 import com.sioptik.main.processing_result.json_parser.parser.JsonParser
 import org.json.JSONObject
+import com.sioptik.main.tesseract.TesseractHelper
 import org.opencv.core.Mat
 import org.opencv.core.Rect
 import com.sioptik.main.riwayat_repository.RiwayatEntity
@@ -34,16 +35,27 @@ import kotlin.math.abs
 import kotlin.math.sqrt
 import java.util.Date
 import kotlin.random.Random
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
 class HasilPemrosesan : AppCompatActivity() {
+    private val lang = "ind"
     private val viewModel: SharedViewModel by viewModels()
     private val riwayatViewModel: RiwayatViewModel by viewModels() {
         RiwayatViewModelFactory(this)
     }
+    private lateinit var tesseractHelper: TesseractHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hasil_pemrosesan)
+
+        prepareTessData()
+        val dataPath = filesDir.absolutePath
+        tesseractHelper = TesseractHelper()
+        tesseractHelper.initTessBaseApi(dataPath, lang)
+
         val imageView: ImageView = findViewById(R.id.processed_image)
 
         // Get Extra
@@ -82,17 +94,17 @@ class HasilPemrosesan : AppCompatActivity() {
 
                 // Process Image
                 val detectedBoxes = detectBoxes(bitmap, boxesData!!)
-                Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData.data.num_of_boxes}")
-                Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
-                val processedBitmap = processImage(bitmap, detectedBoxes)
-
-                // Crop Detected Boxes for OCR
                 val croppedBoxes = cropBoxes(bitmap, detectedBoxes)
 
+                Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData.data.num_of_boxes}")
+                Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
+
+                val ocrResults = processBoxes(croppedBoxes)
+                val processedBitmap = processImage(bitmap, detectedBoxes, ocrResults)
 
                 imageView.setImageBitmap(processedBitmap)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("Image Processing", "Failed to load or process image", e)
                 Toast.makeText(this, "Failed to load or process image", Toast.LENGTH_SHORT).show()
             }
 
@@ -125,36 +137,73 @@ class HasilPemrosesan : AppCompatActivity() {
             replace(R.id.fragmentContainerView, DynamicContentFragment())
         }
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        tesseractHelper.destroy()
+    }
+
+    private fun processBoxes(croppedBoxes: List<Bitmap>): List<String> {
+        val ocrResults = mutableListOf<String>()
+        croppedBoxes.forEach { croppedBitmap ->
+            val text = tesseractHelper.recognizeDigits(croppedBitmap)
+            ocrResults.add(text ?: "X")
+        }
+        return ocrResults
+    }
+
+    private fun prepareTessData() {
+        // Path to the internal directory
+        val tessdataPath = File(filesDir, "tessdata")
+
+        if (!tessdataPath.exists()) {
+            if (!tessdataPath.mkdirs()) {
+                Log.e("Tesseract", "Failed to create directory: ${tessdataPath.absolutePath}")
+                return
+            } else {
+                Log.i("Tesseract", "Created directory: ${tessdataPath.absolutePath}")
+            }
+        }
+
+        val tessdataFile = File(tessdataPath, "$lang.traineddata")
+        if (!tessdataFile.exists()) {
+            try {
+                assets.open("tessdata/$lang.traineddata").use { inputStream ->
+                    FileOutputStream(tessdataFile).use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+                Log.i("Tesseract", "Copied '$lang.traineddata' to tessdata")
+            } catch (e: IOException) {
+                Log.e("Tesseract", "Unable to copy '$lang.traineddata': ", e)
+            }
+        } else {
+            Log.i("Tesseract", "'$lang.traineddata' already exists no need to copy")
+        }
+    }
 }
 
-private fun processImage (bitmap: Bitmap, boxes: List<Rect>) : Bitmap {
+private fun processImage(bitmap: Bitmap, boxes: List<Rect>, ocrResults: List<String>): Bitmap {
     val imgProcessor = ImageProcessor()
-    // Initial Mat
     val originalMat = imgProcessor.convertBitmapToMat(bitmap)
-    val processedMat = imgProcessor.preprocessImage(originalMat) // Maybe will be used but better save it first
-    // Contour Boxes
-    val resultImage = imgProcessor.visualizeContoursAndRectangles(processedMat, boxes, Scalar(255.0, .0, 0.0), true, 4)
+    val processedMat = imgProcessor.preprocessImage(originalMat)
+    val resultImage = imgProcessor.visualizeContoursAndRectangles(processedMat, boxes, Scalar(255.0, 0.0, 0.0), Scalar(255.0, 255.0, 0.0), ocrResults, 4)
     return imgProcessor.convertMatToBitmap(resultImage)
 }
 
-private fun cropBoxes(bitmap: Bitmap, boxes: List<Rect>) : List<Bitmap> {
+private fun cropBoxes(bitmap: Bitmap, boxes: List<Rect>): List<Bitmap> {
     val imgProcessor = ImageProcessor()
-    // Initial Mat
     val originalMat = imgProcessor.convertBitmapToMat(bitmap)
-    val croppedImages = mutableListOf<Bitmap>()
-    boxes.forEach{box ->
-        val newMat : Mat = Mat(originalMat, box)
-        val newBitmap = imgProcessor.convertMatToBitmap(newMat)
-        croppedImages.add(newBitmap)
+    return boxes.map { box ->
+        val newMat = Mat(originalMat, box)
+        imgProcessor.convertMatToBitmap(newMat)
     }
-    return croppedImages
 }
 
 
 private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
 
     val imgProcessor = ImageProcessor()
-    // Initial Mat
     val originalMat = imgProcessor.convertBitmapToMat(bitmap)
     val processedMat = imgProcessor.preprocessImage(originalMat)
 
@@ -196,12 +245,6 @@ private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
             boxesContainer.add(adjustingRect)
         }
 
-        // Selection by Center Distance
-//        val chosenRect = boxSearchSelectionBasedOnCenter(boxes, searchingRect, adjusted_x, adjusted_y)
-//        if (chosenRect != null){
-//            val adjustingRect : Rect = Rect((chosenRect.x + adjusted_x), (chosenRect.y + adjusted_y), chosenRect.width, chosenRect.height)
-//            boxesContainer.add(adjustingRect)
-//        }
     }
 
     // Eliminate Redundant Boxes
@@ -211,25 +254,6 @@ private fun detectBoxes (bitmap: Bitmap, boxesData: BoxMetadata) : List<Rect> {
 
     return isolatedCleansedBoxesContainer
 }
-
-//private fun boxSearchSelectionBasedOnCenter(boxes: List<Rect>, searchingRect: Rect, adjusted_x : Int,adjusted_y : Int) : Rect? {
-//    // From the list, only select 1
-//    val centerSearchX = ((searchingRect.x + searchingRect.width)/2)
-//    val centerSearchY = ((searchingRect.y + searchingRect.height)/2)
-//    var suitableRect: Rect? = null
-//    var minDistance: Double = 999.0
-//    boxes.forEach { rect ->
-//        val adjustingRect : Rect = Rect((rect.x + adjusted_x), (rect.y + adjusted_y), rect.width, rect.height)
-//        val centerBoxX = ((adjustingRect.x + adjustingRect.width)/2)
-//        val centerBoxY = ((adjustingRect.y + adjustingRect.height)/2)
-//        val distance = sqrt(((centerSearchX - centerBoxX)*(centerSearchX - centerBoxX) + (centerSearchY - centerBoxY)*(centerSearchY - centerBoxY)).toDouble())
-//        if (distance < minDistance){
-//            suitableRect = rect
-//            minDistance = distance
-//        }
-//    }
-//    return suitableRect
-//}
 
 private fun eliminateRedundantBoxes(boxes :List<Rect>) : List<Rect>{
     val boxesContainer = mutableListOf<Rect>()
