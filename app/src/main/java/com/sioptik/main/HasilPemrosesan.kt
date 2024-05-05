@@ -53,18 +53,14 @@ class HasilPemrosesan : AppCompatActivity() {
 
             try {
                 val bitmap = MediaStore.Images.Media.getBitmap(this.contentResolver, imageUri)
-
-                // Process Image
                 val detectedBoxes = detectBoxes(bitmap)
-                val processedBitmap = processImage(bitmap, detectedBoxes)
-
-                // Crop Detected Boxes for OCR
                 val croppedBoxes = cropBoxes(bitmap, detectedBoxes)
-                processBoxes(croppedBoxes)
+                val ocrResults = processBoxes(croppedBoxes)
+                val processedBitmap = processImage(bitmap, detectedBoxes, ocrResults)
 
                 imageView.setImageBitmap(processedBitmap)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("Image Processing", "Failed to load or process image", e)
                 Toast.makeText(this, "Failed to load or process image", Toast.LENGTH_SHORT).show()
             }
 
@@ -109,16 +105,14 @@ class HasilPemrosesan : AppCompatActivity() {
         tesseractHelper.destroy()
     }
 
-    private fun processBoxes(croppedBoxed: List<Bitmap>){
-        croppedBoxed.forEach {
-            croppedBitmap ->
+    private fun processBoxes(croppedBoxes: List<Bitmap>): List<String> {
+        val ocrResults = mutableListOf<String>()
+        croppedBoxes.forEach { croppedBitmap ->
             val text = tesseractHelper.recognizeDigits(croppedBitmap)
-            if (text != null) {
-                Log.d("OCR Result", text)
-            }
+            ocrResults.add(text ?: "X")
         }
+        return ocrResults
     }
-
 
     private fun prepareTessData() {
         // Path to the internal directory
@@ -151,36 +145,26 @@ class HasilPemrosesan : AppCompatActivity() {
     }
 }
 
-private fun processImage (bitmap: Bitmap, boxes: List<Rect>) : Bitmap {
+private fun processImage(bitmap: Bitmap, boxes: List<Rect>, ocrResults: List<String>): Bitmap {
     val imgProcessor = ImageProcessor()
-    // Initial Mat
     val originalMat = imgProcessor.convertBitmapToMat(bitmap)
-    val processedMat = imgProcessor.preprocessImage(originalMat) // Maybe will be used but better save it first
-    // Contour Boxes
-    val resultImage = imgProcessor.visualizeContoursAndRectangles(processedMat, boxes, Scalar(255.0, .0, 0.0), true, 2)
+    val processedMat = imgProcessor.preprocessImage(originalMat)
+    val resultImage = imgProcessor.visualizeContoursAndRectangles(processedMat, boxes, Scalar(255.0, 0.0, 0.0), ocrResults, 2)
     return imgProcessor.convertMatToBitmap(resultImage)
 }
 
-private fun cropBoxes(bitmap: Bitmap, boxes: List<Rect>) : List<Bitmap> {
+private fun cropBoxes(bitmap: Bitmap, boxes: List<Rect>): List<Bitmap> {
     val imgProcessor = ImageProcessor()
-    // Initial Mat
     val originalMat = imgProcessor.convertBitmapToMat(bitmap)
-    val croppedImages = mutableListOf<Bitmap>()
-    boxes.forEach{box ->
-        val newMat : Mat = Mat(originalMat, box)
-        val newBitmap = imgProcessor.convertMatToBitmap(newMat)
-        croppedImages.add(newBitmap)
+    return boxes.map { box ->
+        val newMat = Mat(originalMat, box)
+        imgProcessor.convertMatToBitmap(newMat)
     }
-    return croppedImages
 }
 
-
-private fun detectBoxes (bitmap: Bitmap) : List<Rect> {
+private fun detectBoxes(bitmap: Bitmap): List<Rect> {
     val imgProcessor = ImageProcessor()
-    // Initial Mat
     val originalMat = imgProcessor.convertBitmapToMat(bitmap)
     val processedMat = imgProcessor.preprocessImage(originalMat)
-    // Detect Boxes
-    val boxes = imgProcessor.detectBoxes(processedMat)
-    return boxes
+    return imgProcessor.detectBoxes(processedMat)
 }
