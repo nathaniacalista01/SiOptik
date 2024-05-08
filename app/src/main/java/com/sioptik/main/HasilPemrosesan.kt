@@ -59,6 +59,7 @@ class HasilPemrosesan : AppCompatActivity() {
         tesseractHelper.initTessBaseApi(dataPath, lang)
 
         val imageView: ImageView = findViewById(R.id.processed_image)
+        val button : Button = findViewById(R.id.retry_processing_button)
 
         // Get Extra
         val finishButton: Button = findViewById(R.id.finish_button)
@@ -99,7 +100,7 @@ class HasilPemrosesan : AppCompatActivity() {
                 val croppedBoxes = cropBoxes(bitmap, detectedBoxes)
 
                 val box = croppedBoxes[0]
-                val processedBox = Bitmap.createScaledBitmap(box, 35, 35, true);
+                val resizedBox = Bitmap.createScaledBitmap(box, 35,35, true)
 
                 Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData.data.num_of_boxes}")
                 Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
@@ -107,10 +108,9 @@ class HasilPemrosesan : AppCompatActivity() {
                 val ocrResults = processBoxes(croppedBoxes)
                 val processedBitmap = processImage(bitmap, detectedBoxes, ocrResults)
 
-                imageView.setImageBitmap(processedBitmap)
-                val button = findViewById<Button>(R.id.retry_processing_button)
+                imageView.setImageBitmap(resizedBox)
                 button.setOnClickListener {
-                    saveImageToGallery(this, processedBox, "title", "description");
+                    saveImageToGallery(this, box, "CroppedImage", "Cropped image saved from OCR processing")
                 }
             } catch (e: Exception) {
                 Log.e("Image Processing", "Failed to load or process image", e)
