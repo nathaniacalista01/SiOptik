@@ -15,31 +15,25 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
 import com.sioptik.main.image_processing_integration.JsonFileAdapter
-import com.sioptik.main.image_processing_integration.JsonTemplateFactory
 import com.sioptik.main.image_processing_integration.OcrMock
 import com.sioptik.main.image_processor.ImageProcessor
 import com.sioptik.main.processing_result.DynamicContentFragment
 import com.sioptik.main.processing_result.FullScreenImageActivity
 import com.sioptik.main.processing_result.SharedViewModel
-import com.sioptik.main.processing_result.json_parser.model.BoxData
 import com.sioptik.main.processing_result.json_parser.model.BoxMetadata
 import com.sioptik.main.processing_result.json_parser.parser.BoxMetadataParser
-import com.sioptik.main.processing_result.json_parser.parser.JsonParser
-import org.json.JSONObject
-import com.sioptik.main.tesseract.TesseractHelper
-import org.opencv.core.Mat
-import org.opencv.core.Rect
 import com.sioptik.main.riwayat_repository.RiwayatEntity
 import com.sioptik.main.riwayat_repository.RiwayatViewModel
 import com.sioptik.main.riwayat_repository.RiwayatViewModelFactory
+import com.sioptik.main.tesseract.TesseractHelper
+import org.opencv.core.Mat
+import org.opencv.core.Rect
 import org.opencv.core.Scalar
-import kotlin.math.abs
-import kotlin.math.sqrt
-import java.util.Date
-import kotlin.random.Random
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.Date
+import kotlin.math.abs
 
 class HasilPemrosesan : AppCompatActivity() {
     private val lang = "ind"

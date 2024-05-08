@@ -18,14 +18,12 @@ import com.sioptik.main.apriltag.AprilTagDetection
 import com.sioptik.main.apriltag.AprilTagNative
 import com.sioptik.main.camera_processor.CameraProcessor
 import com.sioptik.main.image_processor.ImageProcessor
-import com.sioptik.main.processing_result.FullScreenImageActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.opencv.core.Mat
 import org.opencv.core.Rect
 import org.opencv.core.Scalar
-import java.util.ArrayList
 
 class ValidasiGambar : AppCompatActivity() {
     private lateinit var processedBitmap: Bitmap;

@@ -13,7 +13,6 @@ import com.sioptik.main.R
 import com.sioptik.main.image_processor.ImageProcessor
 import org.opencv.core.Rect
 import java.util.concurrent.Executors
-import java.util.function.BiPredicate
 
 class DetectionThread(private val context: Context, private val borderTl: View, private val borderTr: View, private val borderBl: View, private val borderBr: View, private val imageCapture: ImageCapture) :
     Thread() {
