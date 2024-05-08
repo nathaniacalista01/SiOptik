@@ -1,5 +1,7 @@
 package com.sioptik.main
 
+import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -96,6 +98,9 @@ class HasilPemrosesan : AppCompatActivity() {
                 val detectedBoxes = detectBoxes(bitmap, boxesData!!)
                 val croppedBoxes = cropBoxes(bitmap, detectedBoxes)
 
+                val box = croppedBoxes[0]
+                val processedBox = Bitmap.createScaledBitmap(box, 35, 35, true);
+
                 Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData.data.num_of_boxes}")
                 Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
 
@@ -103,6 +108,10 @@ class HasilPemrosesan : AppCompatActivity() {
                 val processedBitmap = processImage(bitmap, detectedBoxes, ocrResults)
 
                 imageView.setImageBitmap(processedBitmap)
+                val button = findViewById<Button>(R.id.retry_processing_button)
+                button.setOnClickListener {
+                    saveImageToGallery(this, processedBox, "title", "description");
+                }
             } catch (e: Exception) {
                 Log.e("Image Processing", "Failed to load or process image", e)
                 Toast.makeText(this, "Failed to load or process image", Toast.LENGTH_SHORT).show()
@@ -302,3 +311,24 @@ private fun eliminateIsolatedBoxes(boxes : List<Rect>) : List<Rect> {
     return boxesContainer
 }
 
+fun saveImageToGallery(context: Context, bitmap: Bitmap, title: String, description: String) {
+    val contentValues = ContentValues().apply {
+        put(MediaStore.MediaColumns.DISPLAY_NAME, title)
+        put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+        put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/YourAppName")
+    }
+
+    val uri: Uri? = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+    uri?.let {
+        // Memastikan outputStream tidak null sebelum penggunaan
+        context.contentResolver.openOutputStream(it)?.use { outputStream ->
+            // Compressing the bitmap
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+        } ?: run {
+            Toast.makeText(context, "Failed to open output stream", Toast.LENGTH_SHORT).show()
+        }
+        Toast.makeText(context, "Saved to Gallery", Toast.LENGTH_LONG).show()
+    } ?: run {
+        Toast.makeText(context, "Failed to Save", Toast.LENGTH_LONG).show()
+    }
+}
