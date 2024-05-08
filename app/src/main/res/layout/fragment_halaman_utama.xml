@@ -24,7 +24,7 @@
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="313dp"
-            android:layout_height="260dp"
+            android:layout_height="200dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -54,20 +54,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <Button
-                android:id="@+id/image_button"
-                style="@style/HomePageButton"
-                android:background="@drawable/button_background"
-                android:drawableStart="@drawable/image_icon"
-                android:drawablePadding="16dp"
-                android:text="Lihat Gambar"
-                android:clickable="true"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/history_button" />
+                app:layout_constraintTop_toBottomOf="@+id/scan_button"" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <ImageView
