@@ -151,11 +151,7 @@ class ImageProcessor {
         if (rect.width <= wlt || rect.width >= wut){
             return false
         }
-
-        // Check location -> To avoid April Tag and Borders (Contents are almost always in the middle level of height)
-//        if (rect.y < h * height_mat_threshold_multiplier || rect.y > h - (h * height_mat_threshold_multiplier)){
-//            return false
-//        }
+        
         return true
     }
 
