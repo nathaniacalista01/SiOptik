@@ -124,7 +124,7 @@ class Kamera : AppCompatActivity() {
 
     private fun startDetectionThread() {
         if (imageCapture != null && (mDetectionThread == null || !mDetectionThread!!.isInterrupted)) {
-            mDetectionThread = DetectionThread(baseContext, viewBinding.borderTl, viewBinding.borderTr, viewBinding.borderBl, viewBinding.borderBr, imageCapture!!)
+            mDetectionThread = DetectionThread(baseContext, viewBinding.borderTl, viewBinding.borderTr, viewBinding.borderBl, viewBinding.borderBr, imageCapture!!, viewBinding.aprilTag)
             mDetectionThread!!.initialize()
             mDetectionThread!!.start()
         }
