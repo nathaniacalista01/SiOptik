@@ -1,5 +1,7 @@
 package com.sioptik.main
 
+import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -14,31 +16,25 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
 import com.sioptik.main.box_processor.BoxProcessor
 import com.sioptik.main.image_processing_integration.JsonFileAdapter
-import com.sioptik.main.image_processing_integration.JsonTemplateFactory
 import com.sioptik.main.image_processing_integration.OcrMock
 import com.sioptik.main.image_processor.ImageProcessor
 import com.sioptik.main.processing_result.DynamicContentFragment
 import com.sioptik.main.processing_result.FullScreenImageActivity
 import com.sioptik.main.processing_result.SharedViewModel
-import com.sioptik.main.processing_result.json_parser.model.BoxData
 import com.sioptik.main.processing_result.json_parser.model.BoxMetadata
 import com.sioptik.main.processing_result.json_parser.parser.BoxMetadataParser
-import com.sioptik.main.processing_result.json_parser.parser.JsonParser
-import org.json.JSONObject
-import com.sioptik.main.tesseract.TesseractHelper
-import org.opencv.core.Mat
-import org.opencv.core.Rect
 import com.sioptik.main.riwayat_repository.RiwayatEntity
 import com.sioptik.main.riwayat_repository.RiwayatViewModel
 import com.sioptik.main.riwayat_repository.RiwayatViewModelFactory
+import com.sioptik.main.tesseract.TesseractHelper
+import org.opencv.core.Mat
+import org.opencv.core.Rect
 import org.opencv.core.Scalar
-import kotlin.math.abs
-import kotlin.math.sqrt
-import java.util.Date
-import kotlin.random.Random
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.Date
+import kotlin.math.abs
 
 class HasilPemrosesan : AppCompatActivity() {
     private val lang = "ind"
@@ -58,6 +54,7 @@ class HasilPemrosesan : AppCompatActivity() {
         tesseractHelper.initTessBaseApi(dataPath, lang)
 
         val imageView: ImageView = findViewById(R.id.processed_image)
+        val button : Button = findViewById(R.id.retry_processing_button)
 
         // Get Extra
         val finishButton: Button = findViewById(R.id.finish_button)
@@ -98,13 +95,19 @@ class HasilPemrosesan : AppCompatActivity() {
                 val detectedBoxes = boxProcessor.detectBoxes(bitmap, boxesData!!)
                 val croppedBoxes = boxProcessor.cropBoxes(bitmap, detectedBoxes)
 
-                Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData?.data?.num_of_boxes}")
+                val box = croppedBoxes[0]
+                val resizedBox = Bitmap.createScaledBitmap(box, 35,35, true)
+
+                Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData.data.num_of_boxes}")
                 Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
 
                 val ocrResults = processBoxes(croppedBoxes)
                 val processedBitmap = processImage(bitmap, detectedBoxes, ocrResults)
 
-                imageView.setImageBitmap(processedBitmap)
+                imageView.setImageBitmap(resizedBox)
+                button.setOnClickListener {
+                    saveImageToGallery(this, box, "CroppedImage", "Cropped image saved from OCR processing")
+                }
             } catch (e: Exception) {
                 Log.e("Image Processing", "Failed to load or process image", e)
                 Toast.makeText(this, "Failed to load or process image", Toast.LENGTH_SHORT).show()
@@ -180,7 +183,7 @@ class HasilPemrosesan : AppCompatActivity() {
                 Log.e("Tesseract", "Unable to copy '$lang.traineddata': ", e)
             }
         } else {
-            Log.i("Tesseract", "'$lang.traineddata' already exists no need to copy")
+            Log.i("Tesseract", "'$lang.traineddata' already exists no need to copy") 
         }
     }
 
@@ -195,3 +198,24 @@ class HasilPemrosesan : AppCompatActivity() {
 
 
 
+fun saveImageToGallery(context: Context, bitmap: Bitmap, title: String, description: String) {
+    val contentValues = ContentValues().apply {
+        put(MediaStore.MediaColumns.DISPLAY_NAME, title)
+        put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+        put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/YourAppName")
+    }
+
+    val uri: Uri? = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+    uri?.let {
+        // Memastikan outputStream tidak null sebelum penggunaan
+        context.contentResolver.openOutputStream(it)?.use { outputStream ->
+            // Compressing the bitmap
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+        } ?: run {
+            Toast.makeText(context, "Failed to open output stream", Toast.LENGTH_SHORT).show()
+        }
+        Toast.makeText(context, "Saved to Gallery", Toast.LENGTH_LONG).show()
+    } ?: run {
+        Toast.makeText(context, "Failed to Save", Toast.LENGTH_LONG).show()
+    }
+}

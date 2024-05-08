@@ -1,7 +1,4 @@
 package com.sioptik.main.riwayat_repository
-import androidx.lifecycle.LiveData
-import com.sioptik.main.riwayat_repository.RiwayatEntity
-import com.sioptik.main.riwayat_repository.RiwayatDao
 import kotlinx.coroutines.flow.Flow
 
 class RiwayatRepository(private val riwayatDao: RiwayatDao) {
