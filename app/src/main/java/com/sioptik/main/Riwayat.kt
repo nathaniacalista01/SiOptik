@@ -3,6 +3,7 @@ package com.sioptik.main
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toFile
@@ -11,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.sioptik.main.riwayat_repository.RiwayatEntity
 import com.sioptik.main.riwayat_repository.RiwayatViewModel
 import com.sioptik.main.riwayat_repository.RiwayatViewModelFactory
+import java.util.Date
 
 class Riwayat : AppCompatActivity(), RiwayatInteractionListener {
     private val riwayatViewModel: RiwayatViewModel by viewModels {
@@ -29,22 +31,38 @@ class Riwayat : AppCompatActivity(), RiwayatInteractionListener {
         riwayatViewModel.getAllRiwayat().observe(this) {
             riwayatRecyclerViewAdapter.updateData(it)
         }
+
+        riwayatViewModel.insertRiwayat(
+            RiwayatEntity(
+            1,
+            101,
+            Date(),
+            "test",
+            "test",
+            "test"
+        )
+        )
     }
 
     override fun onDeleteRiwayat(riwayat: RiwayatEntity) {
-        val jsonFile = Uri.parse(riwayat.jsonFileUri).toFile()
-        if (jsonFile.exists()) {
-            jsonFile.delete()
+        try {
+            val jsonFile = Uri.parse(riwayat.jsonFileUri).toFile()
+            if (jsonFile.exists()) {
+                jsonFile.delete()
+            }
+            val originalImageFile = Uri.parse(riwayat.originalImageUri).toFile()
+            if (originalImageFile.exists()) {
+                originalImageFile.delete()
+            }
+            val annotatedImageFile = Uri.parse(riwayat.annotatedImageUri).toFile()
+            if (annotatedImageFile.exists()) {
+                annotatedImageFile.delete()
+            }
+        } catch (e: IllegalArgumentException) {
+            Log.d("Riwayat", "Illegal Argument Exception");
+        } finally {
+            riwayatViewModel.deleteRiwayat(riwayat)
         }
-        val originalImageFile = Uri.parse(riwayat.originalImageUri).toFile()
-        if (originalImageFile.exists()) {
-            originalImageFile.delete()
-        }
-        val annotatedImageFile = Uri.parse(riwayat.annotatedImageUri).toFile()
-        if (annotatedImageFile.exists()) {
-            annotatedImageFile.delete()
-        }
-        riwayatViewModel.deleteRiwayat(riwayat)
     }
 
     override fun onClickLihatDetail(riwayat: RiwayatEntity) {
