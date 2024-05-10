@@ -125,16 +125,23 @@ class HasilPemrosesan : AppCompatActivity() {
             if (viewModelJsonTemplate != null && imageUriString != null) {
                 val jsonFileAdapter = JsonFileAdapter()
                 val jsonFileUri = jsonFileAdapter.saveJsonFile(viewModelJsonTemplate, this)
-              val riwayat = RiwayatEntity(
-                  0,
-                  viewModelJsonTemplate.apriltagId,
-                  Date(),
-                  jsonFileUri.toString(),
-                  imageUriString,
-                  imageUriString
-              )
+                  val riwayat = RiwayatEntity(
+                      0,
+                      viewModelJsonTemplate.apriltagId,
+                      Date(),
+                      jsonFileUri.toString(),
+                      imageUriString,
+                      imageUriString
+                  )
                 riwayatViewModel.insertRiwayat(riwayat);
+
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+
+                startActivity(intent);
             }
+
 
         }
 
