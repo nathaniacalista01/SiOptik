@@ -20,6 +20,7 @@ import com.sioptik.main.apriltag.AprilTagNative
 import com.sioptik.main.border_processor.BorderProcessor
 import com.sioptik.main.camera_processor.CameraProcessor
 import com.sioptik.main.image_processor.ImageProcessor
+import com.sioptik.main.tesseract.TesseractHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,6 +30,7 @@ import org.opencv.core.Scalar
 
 class ValidasiGambar : AppCompatActivity() {
     private lateinit var processedBitmap: Bitmap;
+    private lateinit var tesseractHelper: TesseractHelper;
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
