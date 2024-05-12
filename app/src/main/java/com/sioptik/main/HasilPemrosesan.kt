@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
+import com.googlecode.leptonica.android.Box
 import com.sioptik.main.box_processor.BoxProcessor
 import com.sioptik.main.image_processing_integration.JsonFileAdapter
 import com.sioptik.main.image_processing_integration.OcrMock
@@ -42,8 +43,8 @@ class HasilPemrosesan : AppCompatActivity() {
     private val riwayatViewModel: RiwayatViewModel by viewModels() {
         RiwayatViewModelFactory(this)
     }
+    private lateinit var croppedBoxes : List<Bitmap>;
     private lateinit var tesseractHelper: TesseractHelper
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hasil_pemrosesan)
@@ -93,7 +94,17 @@ class HasilPemrosesan : AppCompatActivity() {
 
                 // Process Image
                 val detectedBoxes = boxProcessor.detectBoxes(bitmap, boxesData!!)
-                val croppedBoxes = boxProcessor.cropBoxes(bitmap, detectedBoxes)
+                val tolerance = 5;
+                val sortedBoxes = detectedBoxes.sortedWith(Comparator { a, b ->
+                    if (abs(a.y - b.y) <= tolerance) {  // Jika perbedaan y kedua kotak <= tolerance
+                        a.x.compareTo(b.x)  // Bandingkan berdasarkan x
+                    } else {
+                        a.y.compareTo(b.y)  // Bandingkan berdasarkan y
+                    }
+                })
+                Log.i("Ini detected boxes ", detectedBoxes.toString())
+                Log.i("Sorted Boxes", sortedBoxes.toString())
+                croppedBoxes = boxProcessor.cropBoxes(bitmap, sortedBoxes)
 
                 val box = croppedBoxes[0]
                 val resizedBox = Bitmap.createScaledBitmap(box, 35,35, true)
@@ -102,9 +113,9 @@ class HasilPemrosesan : AppCompatActivity() {
                 Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
 
                 val ocrResults = processBoxes(croppedBoxes)
-                val processedBitmap = processImage(bitmap, detectedBoxes, ocrResults)
+                val processedBitmap = processImage(bitmap, sortedBoxes, ocrResults)
 
-                imageView.setImageBitmap(resizedBox)
+                imageView.setImageBitmap(processedBitmap)
                 button.setOnClickListener {
                     saveImageToGallery(this, box, "CroppedImage", "Cropped image saved from OCR processing")
                 }
@@ -117,7 +128,7 @@ class HasilPemrosesan : AppCompatActivity() {
 
         // Get Metadata through April_Tag
         val ocr = OcrMock(this)
-        val jsonTemplate = ocr.detect(null, april_tag!!.toInt())
+        val jsonTemplate = ocr.detect(croppedBoxes, april_tag!!.toInt())
         viewModel.jsonTemplate = jsonTemplate
 
         finishButton.setOnClickListener {
@@ -157,9 +168,11 @@ class HasilPemrosesan : AppCompatActivity() {
 
     private fun processBoxes(croppedBoxes: List<Bitmap>): List<String> {
         val ocrResults = mutableListOf<String>()
+        var number = 1;
         croppedBoxes.forEach { croppedBitmap ->
-            val text = tesseractHelper.recognizeDigits(croppedBitmap)
-            ocrResults.add(text ?: "X")
+            Log.i("Index ", number.toString())
+            ocrResults.add(number.toString() ?: "X")
+            number += 1;
         }
         return ocrResults
     }
