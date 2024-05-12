@@ -170,7 +170,6 @@ class HasilPemrosesan : AppCompatActivity() {
         val ocrResults = mutableListOf<String>()
         var number = 1;
         croppedBoxes.forEach { croppedBitmap ->
-            Log.i("Index ", number.toString())
             ocrResults.add(number.toString() ?: "X")
             number += 1;
         }
@@ -215,8 +214,6 @@ class HasilPemrosesan : AppCompatActivity() {
         return imgProcessor.convertMatToBitmap(resultImage)
     }
 }
-
-
 
 fun saveImageToGallery(context: Context, bitmap: Bitmap, title: String, description: String) {
     val contentValues = ContentValues().apply {
