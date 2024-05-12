@@ -14,7 +14,6 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
-import com.googlecode.leptonica.android.Box
 import com.sioptik.main.box_processor.BoxProcessor
 import com.sioptik.main.image_processing_integration.JsonFileAdapter
 import com.sioptik.main.image_processing_integration.OcrMock
@@ -27,13 +26,8 @@ import com.sioptik.main.processing_result.json_parser.parser.BoxMetadataParser
 import com.sioptik.main.riwayat_repository.RiwayatEntity
 import com.sioptik.main.riwayat_repository.RiwayatViewModel
 import com.sioptik.main.riwayat_repository.RiwayatViewModelFactory
-import com.sioptik.main.tesseract.TesseractHelper
-import org.opencv.core.Mat
 import org.opencv.core.Rect
 import org.opencv.core.Scalar
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
 import java.util.Date
 import kotlin.math.abs
 
@@ -44,15 +38,10 @@ class HasilPemrosesan : AppCompatActivity() {
         RiwayatViewModelFactory(this)
     }
     private lateinit var croppedBoxes : List<Bitmap>;
-    private lateinit var tesseractHelper: TesseractHelper
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hasil_pemrosesan)
 
-        prepareTessData()
-        val dataPath = filesDir.absolutePath
-        tesseractHelper = TesseractHelper()
-        tesseractHelper.initTessBaseApi(dataPath, lang)
 
         val imageView: ImageView = findViewById(R.id.processed_image)
         val button : Button = findViewById(R.id.retry_processing_button)
@@ -96,14 +85,12 @@ class HasilPemrosesan : AppCompatActivity() {
                 val detectedBoxes = boxProcessor.detectBoxes(bitmap, boxesData!!)
                 val tolerance = 5;
                 val sortedBoxes = detectedBoxes.sortedWith(Comparator { a, b ->
-                    if (abs(a.y - b.y) <= tolerance) {  // Jika perbedaan y kedua kotak <= tolerance
-                        a.x.compareTo(b.x)  // Bandingkan berdasarkan x
+                    if (abs(a.y - b.y) <= tolerance) {
+                        a.x.compareTo(b.x)
                     } else {
-                        a.y.compareTo(b.y)  // Bandingkan berdasarkan y
+                        a.y.compareTo(b.y)
                     }
                 })
-                Log.i("Ini detected boxes ", detectedBoxes.toString())
-                Log.i("Sorted Boxes", sortedBoxes.toString())
                 croppedBoxes = boxProcessor.cropBoxes(bitmap, sortedBoxes)
 
                 val box = croppedBoxes[0]
@@ -163,7 +150,6 @@ class HasilPemrosesan : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        tesseractHelper.destroy()
     }
 
     private fun processBoxes(croppedBoxes: List<Bitmap>): List<String> {
@@ -174,36 +160,6 @@ class HasilPemrosesan : AppCompatActivity() {
             number += 1;
         }
         return ocrResults
-    }
-
-    private fun prepareTessData() {
-        // Path to the internal directory
-        val tessdataPath = File(filesDir, "tessdata")
-
-        if (!tessdataPath.exists()) {
-            if (!tessdataPath.mkdirs()) {
-                Log.e("Tesseract", "Failed to create directory: ${tessdataPath.absolutePath}")
-                return
-            } else {
-                Log.i("Tesseract", "Created directory: ${tessdataPath.absolutePath}")
-            }
-        }
-
-        val tessdataFile = File(tessdataPath, "$lang.traineddata")
-        if (!tessdataFile.exists()) {
-            try {
-                assets.open("tessdata/$lang.traineddata").use { inputStream ->
-                    FileOutputStream(tessdataFile).use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
-                }
-                Log.i("Tesseract", "Copied '$lang.traineddata' to tessdata")
-            } catch (e: IOException) {
-                Log.e("Tesseract", "Unable to copy '$lang.traineddata': ", e)
-            }
-        } else {
-            Log.i("Tesseract", "'$lang.traineddata' already exists no need to copy") 
-        }
     }
 
     private fun processImage(bitmap: Bitmap, boxes: List<Rect>, ocrResults: List<String>): Bitmap {
