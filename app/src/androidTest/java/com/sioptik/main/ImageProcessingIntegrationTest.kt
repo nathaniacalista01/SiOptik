@@ -1,7 +1,6 @@
 package com.sioptik.main
 
 import android.content.Context
-import android.net.Uri
 import androidx.core.net.toFile
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -14,11 +13,6 @@ import com.sioptik.main.riwayat_repository.RiwayatDao
 import com.sioptik.main.riwayat_repository.RiwayatDatabase
 import com.sioptik.main.riwayat_repository.RiwayatEntity
 import com.sioptik.main.riwayat_repository.RiwayatRepository
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.runBlockingTest
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before

@@ -1,17 +1,15 @@
 package com.sioptik.main.image_processor
 
-import android.R
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.util.Log
-import android.widget.ImageView
 import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.Mat
 import org.opencv.core.MatOfPoint
 import org.opencv.core.MatOfPoint2f
-import org.opencv.core.Point
 import org.opencv.core.Rect
 import org.opencv.core.Scalar
 import org.opencv.core.Size
@@ -153,11 +151,7 @@ class ImageProcessor {
         if (rect.width <= wlt || rect.width >= wut){
             return false
         }
-
-        // Check location -> To avoid April Tag and Borders (Contents are almost always in the middle level of height)
-//        if (rect.y < h * height_mat_threshold_multiplier || rect.y > h - (h * height_mat_threshold_multiplier)){
-//            return false
-//        }
+        
         return true
     }
 
@@ -177,38 +171,63 @@ class ImageProcessor {
         processedMat: Mat,
         rectangles: List<Rect>,
         colorScale: Scalar,
-        isBoxes: Boolean,
+        fontColorScale: Scalar,
+        ocrResults: List<String>,
         width: Int
     ): Mat {
-        if (!rectangles.isEmpty()) {
-            // Create a copy of the processed image to draw on
-            val visualizedImage = processedMat
-            // Havent handled for RGBA and Unkown
-            if (detectColorSpace(visualizedImage) == "Grayscale") {
-                Imgproc.cvtColor(visualizedImage, visualizedImage, Imgproc.COLOR_GRAY2BGR)
-            }
 
-            // Draw all detected rectangles
-            rectangles.forEach { rect ->
-                Imgproc.rectangle(
-                    visualizedImage,
-                    rect.tl(),
-                    rect.br(),
-                    colorScale,
-                    width
-                ) // Draw Rectangle
-
-                if(isBoxes){
-                    Imgproc.putText(visualizedImage, "X", rect.tl(), Imgproc.FONT_HERSHEY_TRIPLEX,1.0, colorScale)
-                }
-            }
-
-            return visualizedImage
-        } else {
-            return processedMat
+        if (detectColorSpace(processedMat) == "Grayscale") {
+            Imgproc.cvtColor(processedMat, processedMat, Imgproc.COLOR_GRAY2BGR)
         }
+
+        rectangles.forEachIndexed { index, rect ->
+            Imgproc.rectangle(
+                processedMat,
+                rect.tl(),
+                rect.br(),
+                colorScale,
+                width
+            )
+            // Draw OCR result text
+            Imgproc.putText(
+                processedMat,
+                ocrResults.getOrNull(index) ?: "",
+                rect.tl(),
+                Imgproc.FONT_HERSHEY_DUPLEX,
+                2.0,
+                fontColorScale
+            )
+        }
+
+        return processedMat
     }
 
+    fun visualizeContoursAndBorders(
+        processedMat: Mat,
+        rectangles: List<Rect>,
+        colorScale: Scalar,
+        width: Int
+    ): Mat {
+
+        if (detectColorSpace(processedMat) == "Grayscale") {
+            Imgproc.cvtColor(processedMat, processedMat, Imgproc.COLOR_GRAY2BGR)
+        }
+
+        rectangles.forEachIndexed { index, rect ->
+            Imgproc.rectangle(
+                processedMat,
+                rect.tl(),
+                rect.br(),
+                colorScale,
+                width
+            )
+        }
+
+        return processedMat
+    }
+
+
+    @SuppressLint("UseCompatLoadingForDrawables")
     fun loadDrawableImage(context: Context, drawableId: Int): Mat {
         // Load the drawable image as a Bitmap
         val drawable = context.resources.getDrawable(drawableId, null)

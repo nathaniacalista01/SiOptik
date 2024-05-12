@@ -2,13 +2,11 @@ package com.sioptik.main.camera_processor
 
 import android.content.ContentResolver
 import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Environment
 import androidx.camera.core.ImageProxy
-import com.sioptik.main.ValidasiGambar
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
