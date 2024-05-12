@@ -195,7 +195,8 @@ class ImageProcessor {
                 rect.tl(),
                 Imgproc.FONT_HERSHEY_DUPLEX,
                 2.0,
-                fontColorScale
+                fontColorScale,
+                4
             )
         }
 

@@ -4,24 +4,32 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
-import android.widget.Toast
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sioptik.main.apriltag.AprilTagNative
-import com.sioptik.main.border_processor.BorderProcessor
 import com.sioptik.main.box_processor.BoxProcessor
 import com.sioptik.main.processing_result.json_parser.model.BoxMetadata
 import com.sioptik.main.processing_result.json_parser.parser.BoxMetadataParser
 import org.junit.Assert
+import org.junit.Before
+import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.opencv.core.Core
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 
+
 @RunWith(AndroidJUnit4::class)
 class BoxDetectionTest {
 
+    @Before
+    fun loadOpenCVLibrary() {
+        // Load OpenCV library
+//        System.setProperty("java.library.path", "D:\\Users\\Juan Christopher\\Android\\OpenCV-android-sdk\\sdk\\build\\intermediates\\library_jni\\debug\\jni\\x86_64")
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+    }
     fun getNV21(inputWidth: Int, inputHeight: Int, scaled: Bitmap): ByteArray {
         var scaled = scaled
         val argb = IntArray(inputWidth * inputHeight)
@@ -191,12 +199,6 @@ class BoxDetectionTest {
                         val detections = AprilTagNative.apriltag_detect_yuv(byteArray, width, height)
                         val aprilTag = detections[0].id.toString()
                         Log.i("TEST ${file}", aprilTag)
-
-                        // BORDER DETECTION
-                        var borderProcessor = BorderProcessor()
-                        val borders = borderProcessor.processBorderDetection(InstrumentationRegistry.getInstrumentation().targetContext, bitmap)
-                        val processedBitmap = borderProcessor.processAndCropImage(bitmap, borders)
-                        Log.i("TEST", "BORDER DETECTION === DONE")
 
                         // BOXES DATA
                         var boxesData: BoxMetadata? = null
