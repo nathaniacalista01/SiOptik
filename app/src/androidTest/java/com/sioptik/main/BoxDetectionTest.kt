@@ -19,17 +19,12 @@ import org.opencv.core.Core
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
-
+import org.opencv.android.OpenCVLoader;
+import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class BoxDetectionTest {
 
-    @Before
-    fun loadOpenCVLibrary() {
-        // Load OpenCV library
-//        System.setProperty("java.library.path", "D:\\Users\\Juan Christopher\\Android\\OpenCV-android-sdk\\sdk\\build\\intermediates\\library_jni\\debug\\jni\\x86_64")
-        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-    }
     fun getNV21(inputWidth: Int, inputHeight: Int, scaled: Bitmap): ByteArray {
         var scaled = scaled
         val argb = IntArray(inputWidth * inputHeight)
@@ -153,6 +148,7 @@ class BoxDetectionTest {
     }
     @Test
     public fun TestBoxDetection() {
+        OpenCVLoader.initDebug();
         val context = InstrumentationRegistry.getInstrumentation().context
         val assetManager = context.assets
         var files: Array<String?>? = null
@@ -181,6 +177,9 @@ class BoxDetectionTest {
             e.printStackTrace()
         }
 
+        var sum_error = 0.0;
+        var count = 0;
+
         try {
             files = assetManager.list("")
             if (files != null) {
@@ -208,13 +207,20 @@ class BoxDetectionTest {
                         // BORDER DETECTION
                         val boxProcessor = BoxProcessor()
                         val detectedBoxes = boxProcessor.detectBoxes(bitmap, boxesData!!)
-                        Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData.data.num_of_boxes}")
-                        Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
+                        val needed_boxes = boxesData.data.num_of_boxes
+                        val detected_boxes = detectedBoxes.size
+                        Log.i("TEST NEEDED BOXES", "Needed Boxes: ${needed_boxes}")
+                        Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detected_boxes}")
                         Log.i("TEST", "BOXES DETECTION === DONE")
+
+                        val error = abs(detected_boxes - needed_boxes).toFloat() / needed_boxes * 100
+                        sum_error += error
+                        count += 1
                         inputStream.close()
                     }
-
                 }
+                val mean_error = sum_error / count
+                Log.i("TEST FINAL RESULT", "Mean Error : ${mean_error}")
             }
         } catch (e: IOException) {
             Log.e("TEST", "Got IO Exception")
