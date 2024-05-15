@@ -79,7 +79,7 @@ class ImageProcessor {
     private fun applyCannyDetection (mat: Mat): Mat {
         val edges = Mat(mat.rows(), mat.cols(), mat.type())
 //        Imgproc.Canny(mat, edges, 75.0,  200.0)
-        Imgproc.Canny(mat, edges, 900.0,  1200.0) // Ini threshold kinda trial and error, cari yang bagus
+        Imgproc.Canny(mat, edges, 00.0,  200.0) // Ini threshold kinda trial and error, cari yang bagus
         return edges
     }
 
@@ -115,10 +115,10 @@ class ImageProcessor {
 
             // Processing on mMop2f1 which is in type of MatOfPoint2f
             val approxDistance = Imgproc.arcLength(contour2f, true) * 0.02
+//            val approxDistance = 3.0
             Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true)
 
             val numberVertices = approxCurve.total().toInt()
-
             if (numberVertices in 4..6) {
                 val rect = Imgproc.boundingRect(MatOfPoint(*approxCurve.toArray()))
                 if (checkBoxesSelection(processedMat, rect)) {
@@ -134,7 +134,7 @@ class ImageProcessor {
     }
 
     fun checkBoxesSelection(mat: Mat, rect: Rect) : Boolean{
-        val aspect_threshold = 0.1
+        val aspect_threshold = 0.2
 
         // wlt = width lower threshold, wut = width upper threshold
         // By Experience
@@ -149,7 +149,7 @@ class ImageProcessor {
             return false
         }
         // Check size -> To avoid Noises and Big Box
-        if (rect.width <= wlt || rect.width >= wut){
+        if (rect.width < wlt || rect.width > wut){
             return false
         }
         

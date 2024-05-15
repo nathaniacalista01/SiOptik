@@ -1,6 +1,7 @@
 package com.sioptik.main.box_processor
 
 import android.graphics.Bitmap
+import android.util.Log
 import com.sioptik.main.image_processor.ImageProcessor
 import com.sioptik.main.processing_result.json_parser.model.BoxMetadata
 import org.opencv.core.Mat
@@ -34,12 +35,13 @@ class BoxProcessor {
 
         val boxesRectData = boxesData.data.boxes
         val searchPadding = 150;
+        Log.i("TEST BOXES RECT DATA", boxesRectData.size.toString())
         boxesRectData.forEach { boxData ->
             val temp_x = (boxData.x * w_ratio).toInt()
             val temp_y = (boxData.y * h_ratio).toInt()
             val temp_w = (boxData.w * w_ratio).toInt()
             val temp_h = temp_w
-            val testRect = Rect(temp_x, temp_y, temp_w, temp_h) // Only for testing
+            val testingRect = Rect(temp_x, temp_y, temp_w, temp_h) // Only for testing
 
             val adjusted_x = if (temp_x - searchPadding > 0) (temp_x - searchPadding) else 0
             val adjusted_y = if (temp_y - searchPadding > 0) (temp_y - searchPadding) else 0
@@ -50,6 +52,7 @@ class BoxProcessor {
             val adjusted_h = if (end_y > h) (h - adjusted_y) else (end_y - adjusted_y)
 
             val searchingRect: Rect = Rect(adjusted_x, adjusted_y, adjusted_w, adjusted_h)
+//            boxesContainer.add(testingRect)
 
             // Crop the searching area
             val searchingMat: Mat = Mat(processedMat, searchingRect)
@@ -60,21 +63,21 @@ class BoxProcessor {
                 val adjustingRect : Rect = Rect((rect.x + adjusted_x), (rect.y + adjusted_y), rect.width, rect.height)
                 boxesContainer.add(adjustingRect)
             }
-
         }
 
         // Eliminate Redundant Boxes
         val similarityCleansedBoxesContainer = eliminateRedundantBoxes(boxesContainer)
         // Eliminate y_level isolated Boxes
         val isolatedCleansedBoxesContainer = eliminateIsolatedBoxes(similarityCleansedBoxesContainer)
+        // Eliminate inside boxes
+        val insiderCleansedBoxesContainer = eliminateInsideBoxes(isolatedCleansedBoxesContainer)
 
-        return isolatedCleansedBoxesContainer
+        return insiderCleansedBoxesContainer
     }
 
     private fun eliminateRedundantBoxes(boxes :List<Rect>) : List<Rect>{
         val boxesContainer = mutableListOf<Rect>()
         val differenceThreshold = 20
-        val scaleThreshold = 10
         boxes.forEach { checkingRect ->
             var foundSimilar = false
             boxesContainer.forEachIndexed { index, iteratingRect ->
@@ -97,7 +100,7 @@ class BoxProcessor {
 
     private fun eliminateIsolatedBoxes(boxes : List<Rect>) : List<Rect> {
         val boxesContainer = mutableListOf<Rect>()
-        val differenceThreshold = 20
+        val differenceThreshold = 15
         val notIsolatedThreshold = 1
         boxes.forEachIndexed { checkingIdx, checkingRect ->
             var notIsolatedCount = 0
@@ -112,6 +115,26 @@ class BoxProcessor {
             }
 
             if (notIsolatedCount >= notIsolatedThreshold){
+                boxesContainer.add(checkingRect)
+            }
+        }
+        return boxesContainer
+    }
+
+    private fun eliminateInsideBoxes(boxes: List<Rect>) : List<Rect> {
+        val boxesContainer = mutableListOf<Rect>()
+        boxes.forEachIndexed { checkingIdx, checkingRect ->
+            var foundInside = false;
+            boxes.forEachIndexed { iteratingIdx, iteratingRect ->
+                if (checkingIdx != iteratingIdx){
+                    var horizontalInside = (checkingRect.x >= iteratingRect.x) && ((checkingRect.x + checkingRect.width) <= (iteratingRect.x + iteratingRect.width))
+                    var verticalInside = (checkingRect.y >= iteratingRect.y) && ((checkingRect.y + checkingRect.height) <= (iteratingRect.y + iteratingRect.height))
+                    if (horizontalInside && verticalInside){
+                        foundInside = true
+                    }
+                }
+            }
+            if (!foundInside) {
                 boxesContainer.add(checkingRect)
             }
         }

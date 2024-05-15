@@ -93,8 +93,8 @@ class HasilPemrosesan : AppCompatActivity() {
                 })
                 croppedBoxes = boxProcessor.cropBoxes(bitmap, sortedBoxes)
 
-                val box = croppedBoxes[0]
-                val resizedBox = Bitmap.createScaledBitmap(box, 35,35, true)
+//                val box = croppedBoxes[0]
+//                val resizedBox = Bitmap.createScaledBitmap(box, 35,35, true)
 
                 Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData.data.num_of_boxes}")
                 Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
@@ -104,7 +104,7 @@ class HasilPemrosesan : AppCompatActivity() {
 
                 imageView.setImageBitmap(processedBitmap)
                 button.setOnClickListener {
-                    saveImageToGallery(this, box, "CroppedImage", "Cropped image saved from OCR processing")
+                    saveImageToGallery(this, processedBitmap, "ProcessedImage", "Cropped image saved from OCR processing")
                 }
             } catch (e: Exception) {
                 Log.e("Image Processing", "Failed to load or process image", e)

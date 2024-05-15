@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sioptik.main.apriltag.AprilTagNative
@@ -84,72 +85,12 @@ class BoxDetectionTest {
         Assert.assertTrue(true)
     }
 
-    fun scaleDownBitmap(originalBitmap: Bitmap, maxWidth: Int): Bitmap? {
-        return try {
-            // Calculate the aspect ratio of the original bitmap
-            val aspectRatio = originalBitmap.width.toFloat() / originalBitmap.height
 
-            // Create a ByteArrayOutputStream to write the scaled bitmap
-            val outputStream = ByteArrayOutputStream()
-
-            // Compress the bitmap to the OutputStream with a quality of 100 (maximum quality)
-            originalBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-
-            // Create an input stream from the ByteArrayOutputStream
-            var inputStream = ByteArrayInputStream(outputStream.toByteArray())
-
-            // Decode the input stream to get the bitmap
-            val options = BitmapFactory.Options()
-
-            // Set inJustDecodeBounds to true to get the dimensions of the bitmap without loading it into memory
-            options.inJustDecodeBounds = true
-            BitmapFactory.decodeStream(inputStream, null, options)
-
-            // Close the InputStream
-            inputStream.close()
-
-            // Calculate the sample size based on the maximum width
-            options.inSampleSize = calculateSampleSize(options, maxWidth)
-
-            // Decode the input stream with the calculated sample size
-            options.inJustDecodeBounds = false
-            inputStream = ByteArrayInputStream(outputStream.toByteArray())
-            val scaledBitmap = BitmapFactory.decodeStream(inputStream, null, options)
-            inputStream.close()
-
-            // Return the scaled bitmap
-            scaledBitmap
-        } catch (e: IOException) {
-            // Handle any exceptions that may occur
-            e.printStackTrace()
-            null // Return null in case of an error
-        }
-    }
-
-    private fun calculateSampleSize(options: BitmapFactory.Options, maxWidth: Int): Int {
-        val width = options.outWidth
-        var inSampleSize = 1
-        if (width > maxWidth) {
-            // Calculate the sample size to reduce the width to fit within the maximum width
-            inSampleSize = Math.ceil(width.toDouble() / maxWidth).toInt()
-        }
-        return inSampleSize
-    }
-
-    fun writeToInternalStorage(fileName: String?, content: String) {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        try {
-            val fos = context.openFileOutput(fileName, Context.MODE_PRIVATE)
-            fos.write(content.toByteArray())
-            fos.close()
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-    }
     @Test
     public fun TestBoxDetection() {
         OpenCVLoader.initDebug();
-        val context = InstrumentationRegistry.getInstrumentation().context
+        val context : Context= InstrumentationRegistry.getInstrumentation().context
+//        val context : Context = ApplicationProvider.getApplicationContext()
         val assetManager = context.assets
         var files: Array<String?>? = null
 
@@ -190,37 +131,43 @@ class BoxDetectionTest {
                         // DETECT APRIL TAG
                         val inputStream = assetManager.open(file!!)
                         var bitmap = BitmapFactory.decodeStream(inputStream)
-                        bitmap = AprilTagTest.scaleDownBitmap(bitmap, 2400)
                         val width = bitmap.width
                         val height = bitmap.height
                         val byteArray: ByteArray = getNV21(width, height, bitmap)
                         AprilTagNative.apriltag_init("tag36h10", 2, 1.0, 0.0, 4)
                         val detections = AprilTagNative.apriltag_detect_yuv(byteArray, width, height)
-                        val aprilTag = detections[0].id.toString()
-                        Log.i("TEST ${file}", aprilTag)
+                        if (detections.size > 0){
+                            val aprilTag = detections[0].id.toString()
+                            Log.i("TEST ${file}", aprilTag)
 
-                        // BOXES DATA
-                        var boxesData: BoxMetadata? = null
-                        boxesData = BoxMetadataParser.parse(jsonString, aprilTag)
-                        Log.i("TEST", "BOXES DATA PARSING === DONE")
+                            // BOXES DATA
+                            var boxesData: BoxMetadata? = null
+                            boxesData = BoxMetadataParser.parse(jsonString, aprilTag)
+                            Log.i("TEST", "BOXES DATA PARSING === DONE")
 
-                        // BORDER DETECTION
-                        val boxProcessor = BoxProcessor()
-                        val detectedBoxes = boxProcessor.detectBoxes(bitmap, boxesData!!)
-                        val needed_boxes = boxesData.data.num_of_boxes
-                        val detected_boxes = detectedBoxes.size
-                        Log.i("TEST NEEDED BOXES", "Needed Boxes: ${needed_boxes}")
-                        Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detected_boxes}")
-                        Log.i("TEST", "BOXES DETECTION === DONE")
+                            // BORDER DETECTION
+                            val boxProcessor = BoxProcessor()
+                            val detectedBoxes = boxProcessor.detectBoxes(bitmap, boxesData!!)
+                            val needed_boxes = boxesData.data.num_of_boxes
+                            val detected_boxes = detectedBoxes.size
+                            Log.i("TEST NEEDED BOXES", "Needed Boxes: ${needed_boxes}")
+                            Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detected_boxes}")
+                            Log.i("TEST", "BOXES DETECTION === DONE")
 
-                        val error = abs(detected_boxes - needed_boxes).toFloat() / needed_boxes * 100
-                        sum_error += error
-                        count += 1
+                            val error = abs(detected_boxes - needed_boxes).toFloat() / needed_boxes * 100
+                            sum_error += error
+                            count += 1
+
+                            val mean_error = sum_error / count
+                            Log.i("TEST RESULT", "Mean Error : ${mean_error}")
+
+                        } else {
+                            Log.i("TEST APRIL TAG", "April Tag Not Detected")
+                        }
+
                         inputStream.close()
                     }
                 }
-                val mean_error = sum_error / count
-                Log.i("TEST FINAL RESULT", "Mean Error : ${mean_error}")
             }
         } catch (e: IOException) {
             Log.e("TEST", "Got IO Exception")
