@@ -31,6 +31,8 @@ import org.opencv.core.Scalar
 class ValidasiGambar : AppCompatActivity() {
     private lateinit var processedBitmap: Bitmap;
     private lateinit var tesseractHelper: TesseractHelper;
+    private lateinit var progressBar: ProgressBar;
+    private lateinit var  loadingOverlayBg: View;
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,8 +42,8 @@ class ValidasiGambar : AppCompatActivity() {
         val retryButton = findViewById<Button>(R.id.retryButton)
         val sendButton = findViewById<Button>(R.id.sendButton)
         val imageView: ImageView = findViewById(R.id.imageValidation)
-        val progressBar: ProgressBar = findViewById(R.id.progressBar)
-        val loadingOverlayBg: View = findViewById(R.id.loadingOverlayBg)
+        progressBar = findViewById(R.id.progressBar)
+        loadingOverlayBg = findViewById(R.id.loadingOverlayBg)
 
         // Show the loading indicator immediately
         showLoading(true, progressBar, loadingOverlayBg)
@@ -60,7 +62,6 @@ class ValidasiGambar : AppCompatActivity() {
             val imageUri = Uri.parse(imageUriString)
             imageView.setImageURI(imageUri)
             CoroutineScope(Dispatchers.IO).launch {
-                val imageUri = Uri.parse(imageUriString)
                 processImage(imageUri, imageView, progressBar, loadingOverlayBg, apriltagTagView, sendButton)
             }
         } else {
@@ -79,54 +80,70 @@ class ValidasiGambar : AppCompatActivity() {
             val processedBitmap = borderProcessor.processAndCropImage(bitmap, borders)
             val apriltag = aprilTagFunction.processAprilTagDetection(processedBitmap)
 
-            runOnUiThread {
-                if (apriltag != null) {
-                    apriltagTagView.text = apriltag.id.toString()
+            if (apriltag != null) {
+
+            }
+
+
+
+            // Check if Borders and AprilTag are detected
+            if (borders.size != 4 || apriltag == null) {
+                if (borders.size != 4) {
+                    Toast.makeText(this, "Borders are invalid", Toast.LENGTH_SHORT).show()
+                }
+                if (apriltag == null) {
+                    Toast.makeText(this, "April Tag is not detected", Toast.LENGTH_SHORT).show()
                 }
 
-                imageView.setImageBitmap(processedBitmap)
-
-                // Check if Borders and AprilTag are detected
-                if (borders.size != 4 || apriltag == null) {
-                    if (borders.size != 4) {
-                        Toast.makeText(this, "Borders are invalid", Toast.LENGTH_SHORT).show()
-                    }
-                    if (apriltag == null) {
-                        Toast.makeText(this, "April Tag is not detected", Toast.LENGTH_SHORT).show()
-                    }
+                runOnUiThread {
+                    apriltagTagView.text = apriltag?.id.toString()
+                    imageView.setImageBitmap(processedBitmap)
                     sendButton.isEnabled = false
-                } else {
-                    // Save Cropped Image
-                    val cameraProcessor = CameraProcessor()
-                    val imageProcessor = ImageProcessor()
-                    val tempFile = cameraProcessor.createTempFile(this, "CROPPED")
-                    val resizedBitmap = imageProcessor.resizeImage(processedBitmap, cameraProcessor.WIDTH)
-                    cameraProcessor.saveBitmapToFile(resizedBitmap, tempFile)
+                    showLoading(false, progressBar, loadingOverlayBg)
+                }
+            } else {
+                // Save Cropped Image
+                val cameraProcessor = CameraProcessor()
+                val imageProcessor = ImageProcessor()
+                val tempFile = cameraProcessor.createTempFile(this, "CROPPED")
+                val resizedBitmap = imageProcessor.resizeImage(processedBitmap, cameraProcessor.WIDTH)
+                cameraProcessor.saveBitmapToFile(resizedBitmap, tempFile)
 
-                    val savedUri = FileProvider.getUriForFile(
-                        this,
-                        "com.sioptik.main.provider",
-                        tempFile
-                    )
+                val savedUri = FileProvider.getUriForFile(
+                    this,
+                    "com.sioptik.main.provider",
+                    tempFile
+                )
 
+                runOnUiThread {
+                    apriltagTagView.text = apriltag?.id.toString()
+                    imageView.setImageBitmap(processedBitmap)
                     sendButton.setOnClickListener {
+                        showLoading(true, progressBar, loadingOverlayBg);
                         Intent(this, HasilPemrosesan::class.java).also { previewIntent ->
                             previewIntent.putExtra("image_uri", savedUri.toString())
                             previewIntent.putExtra("april_tag", apriltag.id.toString())
                             startActivity(previewIntent)
                         }
                     }
+                    showLoading(false, progressBar, loadingOverlayBg)
                 }
 
-                // Processing complete, hide loading indicator
-                showLoading(false, progressBar, loadingOverlayBg)
+
             }
+
+
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "Failed to load or process image", Toast.LENGTH_SHORT).show()
             sendButton.isEnabled = false
             showLoading(false, progressBar, loadingOverlayBg)
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        showLoading(false, progressBar, loadingOverlayBg)
     }
 
     private fun showLoading(show: Boolean, progressBar: ProgressBar, loadingOverlay: View) {
