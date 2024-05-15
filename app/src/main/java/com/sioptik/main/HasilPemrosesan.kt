@@ -26,13 +26,8 @@ import com.sioptik.main.processing_result.json_parser.parser.BoxMetadataParser
 import com.sioptik.main.riwayat_repository.RiwayatEntity
 import com.sioptik.main.riwayat_repository.RiwayatViewModel
 import com.sioptik.main.riwayat_repository.RiwayatViewModelFactory
-import com.sioptik.main.tesseract.TesseractHelper
-import org.opencv.core.Mat
 import org.opencv.core.Rect
 import org.opencv.core.Scalar
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
 import java.util.Date
 import kotlin.math.abs
 
@@ -42,16 +37,11 @@ class HasilPemrosesan : AppCompatActivity() {
     private val riwayatViewModel: RiwayatViewModel by viewModels() {
         RiwayatViewModelFactory(this)
     }
-    private lateinit var tesseractHelper: TesseractHelper
-
+    private lateinit var croppedBoxes : List<Bitmap>;
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hasil_pemrosesan)
 
-        prepareTessData()
-        val dataPath = filesDir.absolutePath
-        tesseractHelper = TesseractHelper()
-        tesseractHelper.initTessBaseApi(dataPath, lang)
 
         val imageView: ImageView = findViewById(R.id.processed_image)
         val button : Button = findViewById(R.id.retry_processing_button)
@@ -93,7 +83,15 @@ class HasilPemrosesan : AppCompatActivity() {
 
                 // Process Image
                 val detectedBoxes = boxProcessor.detectBoxes(bitmap, boxesData!!)
-                val croppedBoxes = boxProcessor.cropBoxes(bitmap, detectedBoxes)
+                val tolerance = 5;
+                val sortedBoxes = detectedBoxes.sortedWith(Comparator { a, b ->
+                    if (abs(a.y - b.y) <= tolerance) {
+                        a.x.compareTo(b.x)
+                    } else {
+                        a.y.compareTo(b.y)
+                    }
+                })
+                croppedBoxes = boxProcessor.cropBoxes(bitmap, sortedBoxes)
 
                 val box = croppedBoxes[0]
                 val resizedBox = Bitmap.createScaledBitmap(box, 35,35, true)
@@ -102,9 +100,9 @@ class HasilPemrosesan : AppCompatActivity() {
                 Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
 
                 val ocrResults = processBoxes(croppedBoxes)
-                val processedBitmap = processImage(bitmap, detectedBoxes, ocrResults)
+                val processedBitmap = processImage(bitmap, sortedBoxes, ocrResults)
 
-                imageView.setImageBitmap(resizedBox)
+                imageView.setImageBitmap(processedBitmap)
                 button.setOnClickListener {
                     saveImageToGallery(this, box, "CroppedImage", "Cropped image saved from OCR processing")
                 }
@@ -117,7 +115,7 @@ class HasilPemrosesan : AppCompatActivity() {
 
         // Get Metadata through April_Tag
         val ocr = OcrMock(this)
-        val jsonTemplate = ocr.detect(null, april_tag!!.toInt())
+        val jsonTemplate = ocr.detect(croppedBoxes, april_tag!!.toInt())
         viewModel.jsonTemplate = jsonTemplate
 
         finishButton.setOnClickListener {
@@ -125,16 +123,23 @@ class HasilPemrosesan : AppCompatActivity() {
             if (viewModelJsonTemplate != null && imageUriString != null) {
                 val jsonFileAdapter = JsonFileAdapter()
                 val jsonFileUri = jsonFileAdapter.saveJsonFile(viewModelJsonTemplate, this)
-              val riwayat = RiwayatEntity(
-                  0,
-                  viewModelJsonTemplate.apriltagId,
-                  Date(),
-                  jsonFileUri.toString(),
-                  imageUriString,
-                  imageUriString
-              )
+                  val riwayat = RiwayatEntity(
+                      0,
+                      viewModelJsonTemplate.apriltagId,
+                      Date(),
+                      jsonFileUri.toString(),
+                      imageUriString,
+                      imageUriString
+                  )
                 riwayatViewModel.insertRiwayat(riwayat);
+
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+
+                startActivity(intent);
             }
+
 
         }
 
@@ -145,46 +150,16 @@ class HasilPemrosesan : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        tesseractHelper.destroy()
     }
 
     private fun processBoxes(croppedBoxes: List<Bitmap>): List<String> {
         val ocrResults = mutableListOf<String>()
+        var number = 1;
         croppedBoxes.forEach { croppedBitmap ->
-            val text = tesseractHelper.recognizeDigits(croppedBitmap)
-            ocrResults.add(text ?: "X")
+            ocrResults.add(number.toString() ?: "X")
+            number += 1;
         }
         return ocrResults
-    }
-
-    private fun prepareTessData() {
-        // Path to the internal directory
-        val tessdataPath = File(filesDir, "tessdata")
-
-        if (!tessdataPath.exists()) {
-            if (!tessdataPath.mkdirs()) {
-                Log.e("Tesseract", "Failed to create directory: ${tessdataPath.absolutePath}")
-                return
-            } else {
-                Log.i("Tesseract", "Created directory: ${tessdataPath.absolutePath}")
-            }
-        }
-
-        val tessdataFile = File(tessdataPath, "$lang.traineddata")
-        if (!tessdataFile.exists()) {
-            try {
-                assets.open("tessdata/$lang.traineddata").use { inputStream ->
-                    FileOutputStream(tessdataFile).use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
-                }
-                Log.i("Tesseract", "Copied '$lang.traineddata' to tessdata")
-            } catch (e: IOException) {
-                Log.e("Tesseract", "Unable to copy '$lang.traineddata': ", e)
-            }
-        } else {
-            Log.i("Tesseract", "'$lang.traineddata' already exists no need to copy") 
-        }
     }
 
     private fun processImage(bitmap: Bitmap, boxes: List<Rect>, ocrResults: List<String>): Bitmap {
@@ -195,8 +170,6 @@ class HasilPemrosesan : AppCompatActivity() {
         return imgProcessor.convertMatToBitmap(resultImage)
     }
 }
-
-
 
 fun saveImageToGallery(context: Context, bitmap: Bitmap, title: String, description: String) {
     val contentValues = ContentValues().apply {

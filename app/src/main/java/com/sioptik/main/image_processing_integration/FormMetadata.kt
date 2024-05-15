@@ -41,6 +41,11 @@ class FormMetadataHolder(private val context: Context) {
             it.fieldName
         }?.toTypedArray()
     }
+
+    fun getAllFormInformations(apriltagId: Int): Array<FormInformation>? {
+        return metadata[apriltagId.toString()]?.toTypedArray()
+    }
+
     companion object {
         private var _metadata: FormMetadata? = null;
     }

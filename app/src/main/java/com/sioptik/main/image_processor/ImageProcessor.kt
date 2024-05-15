@@ -16,6 +16,7 @@ import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 
 
+
 class ImageProcessor {
 
     fun preprocessImage(srcMat: Mat): Mat {
@@ -195,7 +196,8 @@ class ImageProcessor {
                 rect.tl(),
                 Imgproc.FONT_HERSHEY_DUPLEX,
                 2.0,
-                fontColorScale
+                fontColorScale,
+                4
             )
         }
 
