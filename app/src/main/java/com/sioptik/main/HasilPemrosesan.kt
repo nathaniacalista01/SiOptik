@@ -83,7 +83,7 @@ class HasilPemrosesan : AppCompatActivity() {
 
                 // Process Image
                 val detectedBoxes = boxProcessor.detectBoxes(bitmap, boxesData!!)
-                val tolerance = 5;
+                val tolerance = 20;
                 val sortedBoxes = detectedBoxes.sortedWith(Comparator { a, b ->
                     if (abs(a.y - b.y) <= tolerance) {
                         a.x.compareTo(b.x)
@@ -91,6 +91,7 @@ class HasilPemrosesan : AppCompatActivity() {
                         a.y.compareTo(b.y)
                     }
                 })
+                Log.i("Sorted ", sortedBoxes.toString())
                 croppedBoxes = boxProcessor.cropBoxes(bitmap, sortedBoxes)
 
                 val box = croppedBoxes[0]
