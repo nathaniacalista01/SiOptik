@@ -11,7 +11,7 @@ import kotlin.random.Random
 
 class OcrMock(private val context: Context) {
 
-    private val tesseractHelper : TesseractHelper = TesseractHelper();
+    val tesseractHelper : TesseractHelper = TesseractHelper();
     fun detect(bitmap: List<Bitmap>, apriltagId: Int): JsonTemplate {
         prepareTessData("ind");
         val dataPath = context.filesDir.absolutePath
@@ -39,7 +39,7 @@ class OcrMock(private val context: Context) {
         }
         return jsonTemplate
     }
-    private fun prepareTessData(lang : String) {
+    fun prepareTessData(lang : String) {
         // Path to the internal directory
         val tessdataPath = File(context.filesDir, "tessdata")
 

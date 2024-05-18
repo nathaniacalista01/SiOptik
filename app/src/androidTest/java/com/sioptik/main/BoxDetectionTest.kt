@@ -271,6 +271,7 @@ class BoxDetectionTest {
             // Memastikan outputStream tidak null sebelum penggunaan
             context.contentResolver.openOutputStream(it)?.use { outputStream ->
                 // Compressing the bitmap
+//                TODO: coba ga dikompres
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
             } ?: run {
                 Log.d("SaveImageToGallery", "Failed to open output stream");
