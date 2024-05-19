@@ -252,7 +252,7 @@ class BoxDetectionTest {
         val croppedBoxes = boxProcessor.cropBoxes(bitmap, sortedBoxes)
 
         for (i in croppedBoxes.indices) {
-            saveImageToGallery(context, croppedBoxes[i], "Cropped_${i}.jpg", "Cropped box")
+            saveImageToGallery(context, croppedBoxes[i], "Test_${i}.jpg", "Cropped box")
         }
     }
 
@@ -271,7 +271,6 @@ class BoxDetectionTest {
             // Memastikan outputStream tidak null sebelum penggunaan
             context.contentResolver.openOutputStream(it)?.use { outputStream ->
                 // Compressing the bitmap
-//                TODO: coba ga dikompres
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
             } ?: run {
                 Log.d("SaveImageToGallery", "Failed to open output stream");
