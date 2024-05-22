@@ -135,9 +135,12 @@ class ValidasiGambar : AppCompatActivity() {
 
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "Failed to load or process image", Toast.LENGTH_SHORT).show()
-            sendButton.isEnabled = false
-            showLoading(false, progressBar, loadingOverlayBg)
+            runOnUiThread {
+                Toast.makeText(this, "Failed to load or process image", Toast.LENGTH_SHORT).show()
+                sendButton.isEnabled = false
+                showLoading(false, progressBar, loadingOverlayBg)
+            }
+
         }
     }
 

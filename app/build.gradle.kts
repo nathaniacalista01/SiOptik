@@ -44,6 +44,7 @@ android {
     buildFeatures {
         compose = true
         viewBinding = true
+        mlModelBinding = true
     }
 
     composeOptions {
@@ -109,4 +110,7 @@ dependencies {
 
     // Tesseract
     implementation("cz.adaptech.tesseract4android:tesseract4android:4.7.0")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.3.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.1.0")
+    implementation("org.tensorflow:tensorflow-lite-metadata:0.1.0")
 }

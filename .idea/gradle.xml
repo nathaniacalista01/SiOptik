@@ -10,7 +10,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
-            <option value="$PROJECT_DIR$/../../../../Users/Juan Christopher/Android/OpenCV-android-sdk/sdk" />
+            <option value="$USER_HOME$/AppData/Local/Android/Sdk/OpenCV-android-sdk/sdk" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="false" />

@@ -120,18 +120,19 @@ class HasilPemrosesan : AppCompatActivity() {
 
             // Process Image
             val detectedBoxes = boxProcessor.detectBoxes(bitmap, boxesData)
-            val tolerance = 5
+            val tolerance = 20
             val sortedBoxes = detectedBoxes.sortedWith(Comparator { a, b ->
-                if (abs(a.y - b.y) <= tolerance) {
+                val yDiff = a.y - b.y
+                if (abs(yDiff) <= tolerance) {
                     a.x.compareTo(b.x)
                 } else {
-                    a.y.compareTo(b.y)
+                    yDiff
                 }
             })
+            Log.i("SortexBoxexs", sortedBoxes.toString())
             croppedBoxes = boxProcessor.cropBoxes(bitmap, sortedBoxes)
-
             val box = croppedBoxes[0]
-            val resizedBox = Bitmap.createScaledBitmap(box, 35, 35, true)
+//            val resizedBox = Bitmap.createScaledBitmap(box, 35, 35, true)
 
             Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData.data.num_of_boxes}")
             Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
@@ -145,12 +146,9 @@ class HasilPemrosesan : AppCompatActivity() {
             runOnUiThread {
                 imageView.setImageBitmap(processedBitmap)
                 button.setOnClickListener {
-                    saveImageToGallery(
-                        this,
-                        box,
-                        "CroppedImage",
-                        "Cropped image saved from OCR processing"
-                    )
+                    croppedBoxes.forEachIndexed { index, bitmap ->
+                        saveImageToGallery(this, bitmap, "CroppedImage $index", "Cropped image saved from OCR processing")
+                    }
                 }
 
                 Log.i("TEST", jsonTemplate.toString())
