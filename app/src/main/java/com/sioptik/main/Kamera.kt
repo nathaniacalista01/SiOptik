@@ -117,6 +117,7 @@ class Kamera : AppCompatActivity() {
     }
 
     private fun pickImageFromGallery(){
+        showLoading(true)
         val intent = Intent(Intent.ACTION_PICK)
         intent.type="image/*"
         startActivityForResult(intent, IMAGE_REQUEST_CODE )
@@ -242,6 +243,7 @@ class Kamera : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        showLoading(false)
         viewBinding.captureButton.isEnabled = true
         viewBinding.pickImage.isEnabled = true
         startCamera()

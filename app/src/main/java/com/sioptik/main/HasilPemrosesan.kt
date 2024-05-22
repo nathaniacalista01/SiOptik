@@ -8,14 +8,17 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
 import com.sioptik.main.box_processor.BoxProcessor
 import com.sioptik.main.image_processing_integration.JsonFileAdapter
+import com.sioptik.main.image_processing_integration.JsonTemplate
 import com.sioptik.main.image_processing_integration.OcrMock
 import com.sioptik.main.image_processor.ImageProcessor
 import com.sioptik.main.processing_result.DynamicContentFragment
@@ -26,6 +29,9 @@ import com.sioptik.main.processing_result.json_parser.parser.BoxMetadataParser
 import com.sioptik.main.riwayat_repository.RiwayatEntity
 import com.sioptik.main.riwayat_repository.RiwayatViewModel
 import com.sioptik.main.riwayat_repository.RiwayatViewModelFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.opencv.core.Rect
 import org.opencv.core.Scalar
 import java.util.Date
@@ -38,23 +44,24 @@ class HasilPemrosesan : AppCompatActivity() {
         RiwayatViewModelFactory(this)
     }
     private lateinit var croppedBoxes : List<Bitmap>;
+    private lateinit var jsonTemplate: JsonTemplate;
+    private lateinit var container: DynamicContentFragment;
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hasil_pemrosesan)
 
-
         val imageView: ImageView = findViewById(R.id.processed_image)
         val button : Button = findViewById(R.id.retry_processing_button)
-
-        // Get Extra
+        val progressBar: ProgressBar = findViewById(R.id.progressBar)
+        val loadingOverlayBg: View = findViewById(R.id.loadingOverlayBg)
         val finishButton: Button = findViewById(R.id.finish_button)
+
+        showLoading(true, progressBar, loadingOverlayBg)
 
         val imageUriString = intent.getStringExtra("image_uri")
         val april_tag = intent.getStringExtra("april_tag")
         Log.i("TEST APRIL TAG", "${april_tag}")
 
-
-        // Open the JSON metadata file
         var boxesData : BoxMetadata? = null
         try {
             val inputStream = resources.openRawResource(R.raw.box_metadata)
@@ -65,8 +72,6 @@ class HasilPemrosesan : AppCompatActivity() {
             Toast.makeText(this, "Failed to read JSON", Toast.LENGTH_SHORT).show()
         }
 
-
-        // Image Processing
         if (imageUriString != null){
             val imageUri = Uri.parse(imageUriString)
 
@@ -77,46 +82,10 @@ class HasilPemrosesan : AppCompatActivity() {
                 startActivity(intent)
             }
 
-            try {
-                val boxProcessor = BoxProcessor()
-                val bitmap = MediaStore.Images.Media.getBitmap(this.contentResolver, imageUri)
-
-                // Process Image
-                val detectedBoxes = boxProcessor.detectBoxes(bitmap, boxesData!!)
-                val tolerance = 10;
-                val sortedBoxes = detectedBoxes.sortedWith(Comparator { a, b ->
-                    if (abs(a.y - b.y) <= tolerance) {
-                        a.x.compareTo(b.x)
-                    } else {
-                        a.y.compareTo(b.y)
-                    }
-                })
-                croppedBoxes = boxProcessor.cropBoxes(bitmap, sortedBoxes)
-
-//                val box = croppedBoxes[0]
-//                val resizedBox = Bitmap.createScaledBitmap(box, 35,35, true)
-
-                Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData.data.num_of_boxes}")
-                Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
-
-                val ocrResults = processBoxes(croppedBoxes)
-                val processedBitmap = processImage(bitmap, sortedBoxes, ocrResults)
-
-                imageView.setImageBitmap(processedBitmap)
-                button.setOnClickListener {
-                    saveImageToGallery(this, processedBitmap, "ProcessedImage", "Cropped image saved from OCR processing")
-                }
-            } catch (e: Exception) {
-                Log.e("Image Processing", "Failed to load or process image", e)
-                Toast.makeText(this, "Failed to load or process image", Toast.LENGTH_SHORT).show()
+            CoroutineScope(Dispatchers.IO).launch {
+                startRecognition(applicationContext, imageUri, boxesData!!, imageView, button, april_tag, progressBar, loadingOverlayBg)
             }
-
         }
-
-        // Get Metadata through April_Tag
-        val ocr = OcrMock(this)
-        val jsonTemplate = ocr.detect(croppedBoxes, april_tag!!.toInt())
-        viewModel.jsonTemplate = jsonTemplate
 
         finishButton.setOnClickListener {
             val viewModelJsonTemplate = viewModel.jsonTemplate
@@ -142,14 +111,62 @@ class HasilPemrosesan : AppCompatActivity() {
 
 
         }
-
-        supportFragmentManager.commit {
-            replace(R.id.fragmentContainerView, DynamicContentFragment())
-        }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    private fun startRecognition(context: Context, imageUri: Uri, boxesData: BoxMetadata, imageView: ImageView, button: Button, apriltag: String?, progressBar: ProgressBar, loadingOverlayBg: View) {
+        try {
+            val boxProcessor = BoxProcessor()
+            val bitmap = MediaStore.Images.Media.getBitmap(this.contentResolver, imageUri)
+
+            // Process Image
+            val detectedBoxes = boxProcessor.detectBoxes(bitmap, boxesData)
+            val tolerance = 5
+            val sortedBoxes = detectedBoxes.sortedWith(Comparator { a, b ->
+                if (abs(a.y - b.y) <= tolerance) {
+                    a.x.compareTo(b.x)
+                } else {
+                    a.y.compareTo(b.y)
+                }
+            })
+            croppedBoxes = boxProcessor.cropBoxes(bitmap, sortedBoxes)
+
+            val box = croppedBoxes[0]
+            val resizedBox = Bitmap.createScaledBitmap(box, 35, 35, true)
+
+            Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData.data.num_of_boxes}")
+            Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
+
+            val ocrResults = processBoxes(croppedBoxes)
+            val processedBitmap = processImage(bitmap, sortedBoxes, ocrResults)
+            val ocr = OcrMock(this)
+            jsonTemplate = ocr.detect(croppedBoxes, apriltag!!.toInt())
+            viewModel.jsonTemplate = jsonTemplate
+
+            runOnUiThread {
+                imageView.setImageBitmap(processedBitmap)
+                button.setOnClickListener {
+                    saveImageToGallery(
+                        this,
+                        box,
+                        "CroppedImage",
+                        "Cropped image saved from OCR processing"
+                    )
+                }
+
+                Log.i("TEST", jsonTemplate.toString())
+                supportFragmentManager.commit {
+                    container = DynamicContentFragment()
+                    replace(R.id.fragmentContainerView, container)
+                }
+                showLoading(false, progressBar, loadingOverlayBg)
+            }
+        } catch (e: Exception) {
+            Log.e("Image Processing", "Failed to load or process image", e)
+            runOnUiThread {
+                Toast.makeText(this, "Failed to load or process image", Toast.LENGTH_SHORT).show()
+                showLoading(false, progressBar, loadingOverlayBg)
+            }
+        }
     }
 
     private fun processBoxes(croppedBoxes: List<Bitmap>): List<String> {
@@ -168,6 +185,16 @@ class HasilPemrosesan : AppCompatActivity() {
         val processedMat = imgProcessor.preprocessImage(originalMat)
         val resultImage = imgProcessor.visualizeContoursAndRectangles(processedMat, boxes, Scalar(255.0, 0.0, 0.0), Scalar(255.0, 255.0, 0.0), ocrResults, 4)
         return imgProcessor.convertMatToBitmap(resultImage)
+    }
+
+    private fun showLoading(show: Boolean, progressBar: ProgressBar, loadingOverlay: View) {
+        if (show) {
+            progressBar.visibility = View.VISIBLE
+            loadingOverlay.visibility = View.VISIBLE
+        } else {
+            progressBar.visibility = View.GONE
+            loadingOverlay.visibility = View.GONE
+        }
     }
 }
 

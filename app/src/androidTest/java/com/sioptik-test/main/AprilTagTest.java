@@ -8,12 +8,17 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
 
+import androidx.test.core.app.ApplicationProvider;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.sioptik.main.apriltag.AprilTagDetection;
 import com.sioptik.main.apriltag.AprilTagNative;
+import com.sioptik.main.image_processor.ImageProcessor;
 
 import org.junit.Test;
+import org.opencv.core.Mat;
+import org.opencv.core.Rect;
+import org.opencv.android.OpenCVLoader;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -21,6 +26,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.List;
+
+
 
 
 public class AprilTagTest {
@@ -156,26 +164,65 @@ public class AprilTagTest {
         }
     }
 
+    public int processBorderDetection(Bitmap bitmap, Context context) {
+        ImageProcessor imgProcessor = new ImageProcessor();
+        final int borderImageDrawable = R.drawable.border_smaller;
+        final int borderImageSmallDrawable = R.drawable.border_smallest;
+        Mat borderImage = imgProcessor.loadDrawableImage(ApplicationProvider.getApplicationContext(), borderImageDrawable);
+        Mat borderImageSmall = imgProcessor.loadDrawableImage(ApplicationProvider.getApplicationContext(), borderImageSmallDrawable);
+
+        // Initial Mat conversion
+        Mat originalMat = imgProcessor.convertBitmapToMat(bitmap);
+
+        // Splitting image into smaller segments and their rects
+        List<Rect> splittedImagesRects = imgProcessor.splitImageRects(originalMat);
+        List<Mat> splittedImages = imgProcessor.splitImage(originalMat);
+        int count = 0;
+
+        for (int index = 0; index < splittedImages.size(); index++) {
+            Mat mat = splittedImages.get(index);
+            // Detect Borders
+            Rect border = imgProcessor.detectBorder(imgProcessor.convertToGray(mat), imgProcessor.convertToGray(borderImage));
+            if (border == null) {
+                border = imgProcessor.detectBorder(imgProcessor.convertToGray(mat), imgProcessor.convertToGray(borderImageSmall));
+            }
+
+            if (border != null) {
+                count++;
+            } else {
+//                Log.i("TEST BORDER DETECTION", "Border Not Found");
+            }
+        }
+        return count;
+    }
+
     @Test
     public void testImport() {
+        OpenCVLoader.initDebug();
         Context context = InstrumentationRegistry.getInstrumentation().getContext();
         AssetManager assetManager = context.getAssets();
         String[] files = null;
 
         try {
             files = assetManager.list("");
+            int count = 0;
             if (files != null) {
                 for (String file : files) {
                     InputStream inputStream = assetManager.open(file);
                     Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
                     bitmap = scaleDownBitmap(bitmap, 1600);
+                    int border = processBorderDetection(bitmap, context);
+//                    Log.i(file, "BORDER:  " + String.valueOf(border));
                     int width = bitmap.getWidth();
                     int height = bitmap.getHeight();
                     byte[] byteArray = getNV21(width, height, bitmap);
                     AprilTagNative.apriltag_init("tag36h10", 2, 1, 0, 4);
                     ArrayList<AprilTagDetection> detections = AprilTagNative.apriltag_detect_yuv(byteArray, width, height);
-                    Log.i(file, String.valueOf(detections.get(0).id));
+                    Log.i(file, String.valueOf(border) + " " + String.valueOf(detections.get(0).id));
                     inputStream.close();
+                    if (count == 2) {
+                        break;
+                    }
                 }
             }
 
