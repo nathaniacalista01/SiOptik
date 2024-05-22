@@ -120,6 +120,7 @@ class BoxDetectionTest {
 
         var sum_error = 0.0;
         var count = 0;
+        var bigDiffFiles = mutableListOf<String>();
 
         try {
             files = assetManager.list("")
@@ -164,8 +165,10 @@ class BoxDetectionTest {
                             sum_error += error
                             count += 1
 
-                            val mean_error = sum_error / count
-                            Log.i("TEST RESULT", "Mean Error : ${mean_error}")
+                            if (error > 10){
+                                bigDiffFiles.add(file)
+                            }
+                            Log.i("TEST RESULT", "Error : ${error}")
 
                         } else {
                             Log.i("TEST APRIL TAG", "April Tag Not Detected")
@@ -175,6 +178,11 @@ class BoxDetectionTest {
                     }
                 }
             }
+            val mean_error = sum_error / count
+            Log.i("TEST RESULT", "==========================")
+            Log.i("TEST RESULT", "Mean Error : ${mean_error}")
+            Log.i("TEST RESULT", "Files that Need Further Tuning: ${bigDiffFiles}")
+
         } catch (e: IOException) {
             Log.e("TEST", "Got IO Exception")
             e.printStackTrace()

@@ -100,7 +100,7 @@ class ValidasiGambar : AppCompatActivity() {
                     val cameraProcessor = CameraProcessor()
                     val imageProcessor = ImageProcessor()
                     val tempFile = cameraProcessor.createTempFile(this, "CROPPED")
-                    val resizedBitmap = imageProcessor.resizeImage(processedBitmap, cameraProcessor.WIDTH)
+                    val resizedBitmap = imageProcessor.resizeImage(processedBitmap, imageProcessor.WIDTH, imageProcessor.HEIGHT);
                     cameraProcessor.saveBitmapToFile(resizedBitmap, tempFile)
 
                     val savedUri = FileProvider.getUriForFile(

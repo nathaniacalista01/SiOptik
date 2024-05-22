@@ -18,6 +18,8 @@ import org.opencv.imgproc.Imgproc
 
 
 class ImageProcessor {
+    val WIDTH = 2400;
+    val HEIGHT = (1.573 * WIDTH).toInt(); // Based on observation, the expected ratio is 1.573
 
     fun preprocessImage(srcMat: Mat): Mat {
         val grayMat = convertToGray(srcMat)
@@ -108,6 +110,8 @@ class ImageProcessor {
         )
         val squares = mutableListOf<Rect>()
 
+        val verticeNumTarget = 8; // Trial and Error
+
         contours.forEach {
             // Minimum size allowed for consideration
             val approxCurve = MatOfPoint2f()
@@ -119,7 +123,7 @@ class ImageProcessor {
             Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true)
 
             val numberVertices = approxCurve.total().toInt()
-            if (numberVertices in 4..6) {
+            if (numberVertices in 4..verticeNumTarget) {
                 val rect = Imgproc.boundingRect(MatOfPoint(*approxCurve.toArray()))
                 if (checkBoxesSelection(processedMat, rect)) {
                     squares.add(rect)
@@ -134,7 +138,7 @@ class ImageProcessor {
     }
 
     fun checkBoxesSelection(mat: Mat, rect: Rect) : Boolean{
-        val aspect_threshold = 0.2
+        val aspect_threshold = 0.25
 
         // wlt = width lower threshold, wut = width upper threshold
         // By Experience
@@ -306,13 +310,17 @@ class ImageProcessor {
         return null
     }
 
-    fun resizeImage(bitmap: Bitmap, width: Int): Bitmap {
-        val w = bitmap.width
-        val h = bitmap.height
-        val aspRat = h.toFloat() / w.toFloat()
-        val W = width
-        val H = (W * aspRat).toInt()
-        val b = Bitmap.createScaledBitmap(bitmap, W, H, false)
-        return b
+//    fun resizeImage(bitmap: Bitmap, width: Int): Bitmap {
+//        val w = bitmap.width
+//        val h = bitmap.height
+//        val aspRat = h.toFloat() / w.toFloat()
+//        val W = width
+//        val H = (W * aspRat).toInt()
+//        val b = Bitmap.createScaledBitmap(bitmap, W, H, false)
+//        return b
+//    }
+
+    fun resizeImage(bitmap: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
+        return Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, false)
     }
 }

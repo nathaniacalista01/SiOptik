@@ -122,13 +122,18 @@ class BoxProcessor {
     }
 
     private fun eliminateInsideBoxes(boxes: List<Rect>) : List<Rect> {
+        val distThreshold = 5;
         val boxesContainer = mutableListOf<Rect>()
         boxes.forEachIndexed { checkingIdx, checkingRect ->
             var foundInside = false;
             boxes.forEachIndexed { iteratingIdx, iteratingRect ->
                 if (checkingIdx != iteratingIdx){
-                    var horizontalInside = (checkingRect.x >= iteratingRect.x) && ((checkingRect.x + checkingRect.width) <= (iteratingRect.x + iteratingRect.width))
-                    var verticalInside = (checkingRect.y >= iteratingRect.y) && ((checkingRect.y + checkingRect.height) <= (iteratingRect.y + iteratingRect.height))
+                    val lBound = iteratingRect.x - distThreshold;
+                    val rBound = iteratingRect.x + iteratingRect.width + distThreshold;
+                    val tBound = iteratingRect.y - distThreshold;
+                    val bBound = iteratingRect.y + iteratingRect.height + distThreshold;
+                    var horizontalInside = (checkingRect.x in lBound..rBound) && ((checkingRect.x + checkingRect.width) in lBound..rBound)
+                    var verticalInside = (checkingRect.y in tBound..bBound) && ((checkingRect.y + checkingRect.height) in tBound..bBound)
                     if (horizontalInside && verticalInside){
                         foundInside = true
                     }
