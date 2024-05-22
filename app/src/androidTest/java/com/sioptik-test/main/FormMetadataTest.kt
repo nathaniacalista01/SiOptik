@@ -1,4 +1,4 @@
-package com.sioptik.main
+package com.`sioptik-test`.main
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider

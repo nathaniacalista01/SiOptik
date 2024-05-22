@@ -1,4 +1,4 @@
-package com.sioptik.main
+package com.`sioptik-test`.main
 
 import android.app.Activity
 import android.app.Instrumentation
@@ -13,6 +13,9 @@ import androidx.test.espresso.intent.rule.IntentsRule
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import com.sioptik.main.Kamera
+import com.sioptik.main.MainActivity
+import com.sioptik.main.R
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test

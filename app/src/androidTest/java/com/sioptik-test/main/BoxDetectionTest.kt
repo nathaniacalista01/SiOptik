@@ -1,4 +1,4 @@
-package com.sioptik.main
+package com.`sioptik-test`.main
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -8,7 +8,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sioptik.main.apriltag.AprilTagNative
-import com.sioptik.main.box_processor.BoxProcessor
+import com.sioptik.main.border_processor.BorderProcessor
+import com.`sioptik-test`.main.box_processor.BoxProcessor
 import com.sioptik.main.processing_result.json_parser.model.BoxMetadata
 import com.sioptik.main.processing_result.json_parser.parser.BoxMetadataParser
 import org.junit.Assert
@@ -137,6 +138,7 @@ class BoxDetectionTest {
                         AprilTagNative.apriltag_init("tag36h10", 2, 1.0, 0.0, 4)
                         val detections = AprilTagNative.apriltag_detect_yuv(byteArray, width, height)
                         if (detections.size > 0){
+
                             val aprilTag = detections[0].id.toString()
                             Log.i("TEST ${file}", aprilTag)
 
