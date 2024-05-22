@@ -1,6 +1,7 @@
 package com.sioptik.main.box_processor
 
 import android.graphics.Bitmap
+import android.util.Log
 import com.sioptik.main.image_processor.ImageProcessor
 import com.sioptik.main.processing_result.json_parser.model.BoxMetadata
 import org.opencv.core.Mat
@@ -84,6 +85,7 @@ class BoxProcessor {
             val temp_y = (boxData.y * h_ratio).toInt()
             val temp_w = (boxData.w * w_ratio).toInt()
             val temp_h = temp_w
+            val testingRect = Rect(temp_x, temp_y, temp_w, temp_h) // Only for testing
 
             val adjusted_x = if (temp_x - searchPadding > 0) (temp_x - searchPadding) else 0
             val adjusted_y = if (temp_y - searchPadding > 0) (temp_y - searchPadding) else 0
@@ -105,19 +107,21 @@ class BoxProcessor {
                 val finalRect = Rect(finalX + adjusted_x, finalY + adjusted_y, finalW, finalH)
                 boxesContainer.add(finalRect)
             }
-
         }
 
         // Eliminate Redundant Boxes
         val similarityCleansedBoxesContainer = eliminateRedundantBoxes(boxesContainer)
         // Eliminate y_level isolated Boxes
-        return eliminateIsolatedBoxes(similarityCleansedBoxesContainer)
+        val isolatedCleansedBoxesContainer = eliminateIsolatedBoxes(similarityCleansedBoxesContainer)
+        // Eliminate inside boxes
+        val insiderCleansedBoxesContainer = eliminateInsideBoxes(isolatedCleansedBoxesContainer)
+
+        return insiderCleansedBoxesContainer
     }
 
     private fun eliminateRedundantBoxes(boxes :List<Rect>) : List<Rect>{
         val boxesContainer = mutableListOf<Rect>()
         val differenceThreshold = 20
-        val scaleThreshold = 10
         boxes.forEach { checkingRect ->
             var foundSimilar = false
             boxesContainer.forEachIndexed { index, iteratingRect ->
@@ -140,7 +144,7 @@ class BoxProcessor {
 
     private fun eliminateIsolatedBoxes(boxes : List<Rect>) : List<Rect> {
         val boxesContainer = mutableListOf<Rect>()
-        val differenceThreshold = 20
+        val differenceThreshold = 15
         val notIsolatedThreshold = 1
         boxes.forEachIndexed { checkingIdx, checkingRect ->
             var notIsolatedCount = 0
@@ -155,6 +159,31 @@ class BoxProcessor {
             }
 
             if (notIsolatedCount >= notIsolatedThreshold){
+                boxesContainer.add(checkingRect)
+            }
+        }
+        return boxesContainer
+    }
+
+    private fun eliminateInsideBoxes(boxes: List<Rect>) : List<Rect> {
+        val distThreshold = 5;
+        val boxesContainer = mutableListOf<Rect>()
+        boxes.forEachIndexed { checkingIdx, checkingRect ->
+            var foundInside = false;
+            boxes.forEachIndexed { iteratingIdx, iteratingRect ->
+                if (checkingIdx != iteratingIdx){
+                    val lBound = iteratingRect.x - distThreshold;
+                    val rBound = iteratingRect.x + iteratingRect.width + distThreshold;
+                    val tBound = iteratingRect.y - distThreshold;
+                    val bBound = iteratingRect.y + iteratingRect.height + distThreshold;
+                    var horizontalInside = (checkingRect.x in lBound..rBound) && ((checkingRect.x + checkingRect.width) in lBound..rBound)
+                    var verticalInside = (checkingRect.y in tBound..bBound) && ((checkingRect.y + checkingRect.height) in tBound..bBound)
+                    if (horizontalInside && verticalInside){
+                        foundInside = true
+                    }
+                }
+            }
+            if (!foundInside) {
                 boxesContainer.add(checkingRect)
             }
         }
