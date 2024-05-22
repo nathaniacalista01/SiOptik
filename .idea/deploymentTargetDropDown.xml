@@ -2,19 +2,10 @@
 <project version="4">
   <component name="deploymentTargetDropDown">
     <value>
-      <entry key="AprilTagTest">
-        <State />
-      </entry>
-      <entry key="BoxDetectionTest">
-        <State />
-      </entry>
       <entry key="TestBoxDetection()">
         <State />
       </entry>
       <entry key="app">
-        <State />
-      </entry>
-      <entry key="testImport()">
         <State />
       </entry>
     </value>

@@ -85,8 +85,34 @@ def get_all_dict(april_tag_dict):
 
           all_dict[april_tag]["num_of_boxes"] = int((len(lines) - 1) / 2)
           all_dict[april_tag]["boxes"] = []
-          
           id_rect = 1
+
+          # Preventing the small 8 boxes to be inserted
+          threshold = 2
+          avoided_height = -1
+          height_check_dict = dict()
+          for line in lines:
+              if ("Rect" not in line):
+                  content = line.split(' ')
+                  if (len(content) == 4):
+                    y = int(content[1])
+
+                    tempKey = None
+                    for k, v in height_check_dict.items():
+                        if (abs(k - y) <= threshold):
+                            tempKey = k
+                    
+                    if (tempKey != None):
+                        height_check_dict[tempKey] += 1
+                    else:
+                        height_check_dict[y] = 1
+          for k, v in height_check_dict.items():
+              if (v == 8):
+                  avoided_height = k
+
+          if (avoided_height > 0):    
+            print(april_tag, height_check_dict)
+                  
           for line in lines:
               if "Rect" not in line:
                   
@@ -107,9 +133,12 @@ def get_all_dict(april_tag_dict):
                     temp_dict['y'] = adjusted_y
                     temp_dict['w'] = adjusted_w
 
-                    all_dict[april_tag]["boxes"].append(temp_dict)
-                  
-                    id_rect +=1
+                    # Only insert the not avoided boxes
+                    if (y != avoided_height):
+                      all_dict[april_tag]["boxes"].append(temp_dict)
+                      id_rect +=1
+                    
+          all_dict[april_tag]["num_of_boxes"] = id_rect - 1
 
           count += 1
   return all_dict

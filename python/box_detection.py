@@ -61,7 +61,3 @@ for file_name in os.listdir(data_dir):
                 count_rect +=1
     count += 1
 
-
-# plt.figure(figsize=(20, 20))
-# plt.imshow(output_image)
-# plt.show()

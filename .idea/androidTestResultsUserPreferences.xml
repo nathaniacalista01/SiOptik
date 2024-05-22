@@ -110,6 +110,21 @@
             </AndroidTestResultsTableState>
           </value>
         </entry>
+        <entry key="1274629494">
+          <value>
+            <AndroidTestResultsTableState>
+              <option name="preferredColumnWidths">
+                <map>
+                  <entry key="Duration" value="90" />
+                  <entry key="Pixel_5_API_34" value="120" />
+                  <entry key="Tests" value="360" />
+                  <entry key="samsung SM-P619" value="120" />
+                  <entry key="samsung SM-T875" value="120" />
+                </map>
+              </option>
+            </AndroidTestResultsTableState>
+          </value>
+        </entry>
         <entry key="1450261536">
           <value>
             <AndroidTestResultsTableState>
@@ -143,6 +158,7 @@
                 <map>
                   <entry key="Duration" value="90" />
                   <entry key="Tests" value="360" />
+                  <entry key="Xiaomi 21051182G" value="120" />
                   <entry key="Xiaomi M2103K19G" value="120" />
                 </map>
               </option>
