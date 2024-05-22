@@ -3,25 +3,23 @@ package com.`sioptik-test`.main
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.provider.MediaStore
 import android.util.Log
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.`sioptik-test`.main.box_processor.BoxProcessor
+import com.sioptik.main.AprilTagTest
+import com.sioptik.main.apriltag.AprilTagFunction
 import com.sioptik.main.apriltag.AprilTagNative
 import com.sioptik.main.border_processor.BorderProcessor
-import com.`sioptik-test`.main.box_processor.BoxProcessor
 import com.sioptik.main.processing_result.json_parser.model.BoxMetadata
 import com.sioptik.main.processing_result.json_parser.parser.BoxMetadataParser
 import org.junit.Assert
-import org.junit.Before
-import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.opencv.core.Core
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
+import org.opencv.android.OpenCVLoader
 import java.io.IOException
-import org.opencv.android.OpenCVLoader;
 import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
@@ -96,6 +94,7 @@ class BoxDetectionTest {
         var files: Array<String?>? = null
 
         var jsonString = "";
+        AprilTagNative.apriltag_init("tag36h10", 2, 1.0, 0.0, 4)
 
         try {
             files = assetManager.list("")
@@ -141,6 +140,11 @@ class BoxDetectionTest {
 
                             val aprilTag = detections[0].id.toString()
                             Log.i("TEST ${file}", aprilTag)
+
+                            var borderProcessor = BorderProcessor()
+                            val borders = borderProcessor.processBorderDetection(ApplicationProvider.getApplicationContext(), bitmap)
+                            bitmap = borderProcessor.cropImage(bitmap, borders)
+                            Log.i("TEST", "DETECTED BORDER " + borders.size);
 
                             // BOXES DATA
                             var boxesData: BoxMetadata? = null

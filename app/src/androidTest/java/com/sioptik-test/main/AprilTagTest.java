@@ -30,7 +30,7 @@ public class AprilTagTest {
         return stream.toByteArray();
     }
 
-    byte [] getNV21(int inputWidth, int inputHeight, Bitmap scaled) {
+    public static byte [] getNV21(int inputWidth, int inputHeight, Bitmap scaled) {
         int[] argb = new int[inputWidth * inputHeight];
 
         // Ensure that the bitmap is in ARGB_8888 format
@@ -46,7 +46,7 @@ public class AprilTagTest {
         return yuv;
     }
 
-    void encodeYUV420SP(byte[] yuv420sp, int[] argb, int width, int height) {
+    public static void encodeYUV420SP(byte[] yuv420sp, int[] argb, int width, int height) {
         try {
             final int frameSize = width * height;
 
