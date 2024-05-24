@@ -117,30 +117,69 @@ class HasilPemrosesan : AppCompatActivity() {
         try {
             val boxProcessor = BoxProcessor()
             val bitmap = MediaStore.Images.Media.getBitmap(this.contentResolver, imageUri)
-
+            val detectBoxes = boxProcessor.detectBoxes(bitmap, boxesData)
             // Process Image
-            val detectedBoxes = boxProcessor.detectBoxes(bitmap, boxesData)
+            val detectedBoxes = detectBoxes.finalRects
+            val tempBoxes = detectBoxes.testingRects
+            val allBoxDetected = detectBoxes.allBoxesDetected;
             val tolerance = 20
+
             val sortedBoxes = detectedBoxes.sortedWith(Comparator { a, b ->
                 val yDiff = a.y - b.y
+                val xDiff = a.x - b.x
                 if (abs(yDiff) <= tolerance) {
                     a.x.compareTo(b.x)
                 } else {
                     yDiff
                 }
             })
-            Log.i("SortexBoxexs", sortedBoxes.toString())
             croppedBoxes = boxProcessor.cropBoxes(bitmap, sortedBoxes)
+
+            Log.i("SortexBoxexs", sortedBoxes.toString())
             val box = croppedBoxes[0]
 //            val resizedBox = Bitmap.createScaledBitmap(box, 35, 35, true)
 
             Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData.data.num_of_boxes}")
             Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
+            if(!allBoxDetected){
+
+                val sortedTempBox = tempBoxes.sortedWith(Comparator { a, b ->
+                    val yDiff = a.y - b.y
+                    val xDiff = a.x - b.x
+                    if (abs(yDiff) <= tolerance) {
+                        a.x.compareTo(b.x)
+                    } else {
+                        yDiff
+                    }
+                })
+                Log.i("Data Boxes", sortedTempBox.toString())
+
+                var diff = 0;
+                var totalMissed = 0;
+
+                for (i in sortedTempBox.indices){
+                    if(i - diff >= sortedBoxes.size){
+                        break
+                    }
+                    val currentDetectedBoxes = sortedBoxes[i - diff]
+                    val realBox = sortedTempBox[i]
+                    val distance = abs(currentDetectedBoxes.x - realBox.x)
+                    if(distance > 40){
+                        Log.i("Distance : ", distance.toString())
+                        Log.i("Real", realBox.toString())
+                        Log.i("Temp", currentDetectedBoxes.toString())
+                        Log.i("Missing",i.toString())
+                        diff += 1;
+                        totalMissed += 1;
+                    }
+                }
+                Log.i("TotalMissing", totalMissed.toString())
+            }
 
             val ocrResults = processBoxes(croppedBoxes)
             val processedBitmap = processImage(bitmap, sortedBoxes, ocrResults)
             val ocr = OcrMock(this)
-            jsonTemplate = ocr.detect(croppedBoxes, apriltag!!.toInt())
+            jsonTemplate = ocr.detectModel(croppedBoxes, apriltag!!.toInt(), boxesData)
             viewModel.jsonTemplate = jsonTemplate
 
             runOnUiThread {

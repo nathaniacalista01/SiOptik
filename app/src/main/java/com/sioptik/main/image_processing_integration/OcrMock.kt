@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.util.Log
 import com.sioptik.main.ml.Model
 import com.sioptik.main.ml.Ocr
+import com.sioptik.main.processing_result.json_parser.model.BoxMetadata
 import com.sioptik.main.tesseract.TesseractHelper
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
@@ -19,7 +20,7 @@ class OcrMock(private val context: Context) {
 
     val tesseractHelper : TesseractHelper = TesseractHelper();
 
-    fun detectModel(bitmap : List<Bitmap>, apriltagId: Int) : JsonTemplate{
+    fun detectModel(bitmap : List<Bitmap>, apriltagId: Int, boxesData : BoxMetadata) : JsonTemplate{
         val model = Ocr.newInstance(context)
 
         val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1,35,35,1), DataType.FLOAT32)
@@ -28,6 +29,9 @@ class OcrMock(private val context: Context) {
         for(field  in jsonTemplate.fieldNames){
             val numOfBoxes = jsonTemplate.getBoxes(field)
             var digits = ""
+            val firstBoxInField = boxesData.data.boxes.get(currentIndex)
+            Log.i("First box in field X : ", firstBoxInField.x.toString())
+            Log.i("First box in field Y : ", firstBoxInField.y.toString())
             for (boxIndex in currentIndex until currentIndex + numOfBoxes){
                 if(boxIndex < bitmap.size){
                     val box = bitmap[boxIndex]

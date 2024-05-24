@@ -12,6 +12,11 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
+data class DetectionResults(
+    val testingRects: List<Rect>,
+    val finalRects: List<Rect>,
+    val allBoxesDetected : Boolean,
+)
 class BoxProcessor {
 
     fun cropBoxes(bitmap: Bitmap, boxes: List<Rect>): List<Bitmap> {
@@ -64,12 +69,13 @@ class BoxProcessor {
         // Fallback to full matrix if no bounds were detected
         return Rect(0, 0, mat.cols(), mat.rows())
     }
-    fun detectBoxes(bitmap: Bitmap, boxesData: BoxMetadata): List<Rect> {
+    fun detectBoxes(bitmap: Bitmap, boxesData: BoxMetadata): DetectionResults {
         val imgProcessor = ImageProcessor()
         val originalMat = imgProcessor.convertBitmapToMat(bitmap)
         val processedMat = imgProcessor.preprocessImage(originalMat)
 
         // Detect Boxes
+        val tempRect = mutableListOf<Rect>()
         var boxesContainer = mutableListOf<Rect>()
         val w = bitmap.width
         val h = bitmap.height
@@ -80,13 +86,14 @@ class BoxProcessor {
 
         val margin = 12
         val searchPadding = 130
-        boxesData.data.boxes.forEach { boxData ->
+        val boxes = boxesData.data.boxes
+        boxes.forEach { boxData ->
             val temp_x = (boxData.x * w_ratio).toInt()
             val temp_y = (boxData.y * h_ratio).toInt()
             val temp_w = (boxData.w * w_ratio).toInt()
             val temp_h = temp_w
             val testingRect = Rect(temp_x, temp_y, temp_w, temp_h) // Only for testing
-
+            tempRect.add(testingRect)
             val adjusted_x = if (temp_x - searchPadding > 0) (temp_x - searchPadding) else 0
             val adjusted_y = if (temp_y - searchPadding > 0) (temp_y - searchPadding) else 0
             val adjusted_w = if (temp_x + temp_w + searchPadding > w) (w - adjusted_x) else (temp_w + 2 * searchPadding)
@@ -116,7 +123,8 @@ class BoxProcessor {
         // Eliminate inside boxes
         val insiderCleansedBoxesContainer = eliminateInsideBoxes(isolatedCleansedBoxesContainer)
 
-        return insiderCleansedBoxesContainer
+        return DetectionResults(tempRect,insiderCleansedBoxesContainer,
+            insiderCleansedBoxesContainer.size == boxes.size)
     }
 
     private fun eliminateRedundantBoxes(boxes :List<Rect>) : List<Rect>{
