@@ -19,25 +19,30 @@ data class DetectionResults(
 )
 class BoxProcessor {
 
-    fun cropBoxes(bitmap: Bitmap, boxes: List<Rect>): List<Bitmap> {
+    fun cropBoxes(bitmap: Bitmap, boxes: List<Rect?>): List<Bitmap?> {
         val imgProcessor = ImageProcessor()
         val originalMat = imgProcessor.convertBitmapToMat(bitmap)
         return boxes.map { box ->
-            val croppedMat = Mat(originalMat, box)
-            Imgproc.cvtColor(croppedMat, croppedMat, Imgproc.COLOR_BGR2GRAY)
-            Imgproc.GaussianBlur(croppedMat, croppedMat, Size(5.0, 5.0), 0.0) // Applying Gaussian Blur to reduce noise
-            croppedMat.convertTo(croppedMat, -1, 1.5, 10.0)
-            Imgproc.adaptiveThreshold(croppedMat, croppedMat, 255.0, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY_INV, 11, 2.0)
-
-            val bounds = findTightestBlackBounds(croppedMat)
-            if (bounds.width > 0 && bounds.height > 0) { // Ensure bounds are valid
-                val tightCroppedMat = Mat(croppedMat, bounds)
-                imgProcessor.convertMatToBitmap(tightCroppedMat)
+            if (box == null) {
+                null
             } else {
-                imgProcessor.convertMatToBitmap(croppedMat) // Fallback to the original cropped area
+                val croppedMat = Mat(originalMat, box)
+                Imgproc.cvtColor(croppedMat, croppedMat, Imgproc.COLOR_BGR2GRAY)
+                Imgproc.GaussianBlur(croppedMat, croppedMat, Size(5.0, 5.0), 0.0) // Applying Gaussian Blur to reduce noise
+                croppedMat.convertTo(croppedMat, -1, 1.5, 10.0)
+                Imgproc.adaptiveThreshold(croppedMat, croppedMat, 255.0, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY_INV, 11, 2.0)
+
+                val bounds = findTightestBlackBounds(croppedMat)
+                if (bounds.width > 0 && bounds.height > 0) { // Ensure bounds are valid
+                    val tightCroppedMat = Mat(croppedMat, bounds)
+                    imgProcessor.convertMatToBitmap(tightCroppedMat)
+                } else {
+                    imgProcessor.convertMatToBitmap(croppedMat) // Fallback to the original cropped area
+                }
             }
         }
     }
+
 
     private fun findTightestBlackBounds(mat: Mat, buffer: Int = 5): Rect {
         var minX = mat.cols()

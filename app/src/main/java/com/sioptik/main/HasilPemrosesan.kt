@@ -43,7 +43,7 @@ class HasilPemrosesan : AppCompatActivity() {
     private val riwayatViewModel: RiwayatViewModel by viewModels() {
         RiwayatViewModelFactory(this)
     }
-    private lateinit var croppedBoxes : List<Bitmap>;
+    private lateinit var croppedBoxes : List<Bitmap?>;
     private lateinit var jsonTemplate: JsonTemplate;
     private lateinit var container: DynamicContentFragment;
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -133,16 +133,15 @@ class HasilPemrosesan : AppCompatActivity() {
                     yDiff
                 }
             })
-            croppedBoxes = boxProcessor.cropBoxes(bitmap, sortedBoxes)
+
 
             Log.i("SortexBoxexs", sortedBoxes.toString())
-            val box = croppedBoxes[0]
-//            val resizedBox = Bitmap.createScaledBitmap(box, 35, 35, true)
 
             Log.i("TEST NEEDED BOXES", "Needed Boxes: ${boxesData.data.num_of_boxes}")
             Log.i("TEST DETECTED BOXES", "Detected Boxes: ${detectedBoxes.size}")
+            var finalResultBoxes = mutableListOf<Rect?>()
+            var boxesToUse: List<Rect?>
             if(!allBoxDetected){
-
                 val sortedTempBox = tempBoxes.sortedWith(Comparator { a, b ->
                     val yDiff = a.y - b.y
                     val xDiff = a.x - b.x
@@ -164,18 +163,24 @@ class HasilPemrosesan : AppCompatActivity() {
                     val currentDetectedBoxes = sortedBoxes[i - diff]
                     val realBox = sortedTempBox[i]
                     val distance = abs(currentDetectedBoxes.x - realBox.x)
-                    if(distance > 40){
+                    if(distance > 70){
                         Log.i("Distance : ", distance.toString())
                         Log.i("Real", realBox.toString())
                         Log.i("Temp", currentDetectedBoxes.toString())
                         Log.i("Missing",i.toString())
                         diff += 1;
                         totalMissed += 1;
+                        finalResultBoxes.add(null)
+                    }else{
+                        finalResultBoxes.add(currentDetectedBoxes)
                     }
                 }
+                boxesToUse = finalResultBoxes
                 Log.i("TotalMissing", totalMissed.toString())
+            }else{
+                boxesToUse = sortedBoxes
             }
-
+            croppedBoxes = boxProcessor.cropBoxes(bitmap, boxesToUse)
             val ocrResults = processBoxes(croppedBoxes)
             val processedBitmap = processImage(bitmap, sortedBoxes, ocrResults)
             val ocr = OcrMock(this)
@@ -186,14 +191,16 @@ class HasilPemrosesan : AppCompatActivity() {
                 imageView.setImageBitmap(processedBitmap)
                 button.setOnClickListener {
                     croppedBoxes.forEachIndexed { index, bitmap ->
-                        saveImageToGallery(this, bitmap, "CroppedImage $index", "Cropped image saved from OCR processing")
+                        if(bitmap !== null){
+                            saveImageToGallery(this, bitmap, "CroppedImage $index", "Cropped image saved from OCR processing")
+                        }
                     }
                 }
 
                 Log.i("TEST", jsonTemplate.toString())
                 supportFragmentManager.commit {
                     container = DynamicContentFragment()
-                    replace(R.id.fragmentContainerView, container)
+                   replace(R.id.fragmentContainerView, container)
                 }
                 showLoading(false, progressBar, loadingOverlayBg)
             }
@@ -206,12 +213,14 @@ class HasilPemrosesan : AppCompatActivity() {
         }
     }
 
-    private fun processBoxes(croppedBoxes: List<Bitmap>): List<String> {
+    private fun processBoxes(croppedBoxes: List<Bitmap?>): List<String> {
         val ocrResults = mutableListOf<String>()
         var number = 1;
         croppedBoxes.forEach { croppedBitmap ->
-            ocrResults.add(number.toString() ?: "X")
-            number += 1;
+            if(croppedBitmap !== null){
+                ocrResults.add(number.toString() ?: "X")
+                number += 1;
+            }
         }
         return ocrResults
     }

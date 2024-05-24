@@ -20,9 +20,9 @@ class OcrMock(private val context: Context) {
 
     val tesseractHelper : TesseractHelper = TesseractHelper();
 
-    fun detectModel(bitmap : List<Bitmap>, apriltagId: Int, boxesData : BoxMetadata) : JsonTemplate{
-        val model = Ocr.newInstance(context)
-
+    fun detectModel(bitmap : List<Bitmap?>, apriltagId: Int, boxesData : BoxMetadata) : JsonTemplate{
+        val model = Model.newInstance(context)
+        Log.i("Bitmap length", bitmap.size.toString())
         val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1,35,35,1), DataType.FLOAT32)
         val jsonTemplate = JsonTemplateFactory(context).jsonTemplate(apriltagId)
         var currentIndex = 0
@@ -35,16 +35,22 @@ class OcrMock(private val context: Context) {
             for (boxIndex in currentIndex until currentIndex + numOfBoxes){
                 if(boxIndex < bitmap.size){
                     val box = bitmap[boxIndex]
-                    val resizedBox = Bitmap.createScaledBitmap(box, 35, 35,true)
-                    val byteBuffer = convertBitmapToByteBuffer(resizedBox)
-                    inputFeature0.loadBuffer(byteBuffer)
-                    val outputs = model.process(inputFeature0)
-                    val outputFeature0 = outputs.outputFeature0AsTensorBuffer
-                    val result = outputFeature0.floatArray
-                    val maxIndex = result.indices.maxBy { result[it] } ?: -1
-                    val resultString = "Index : %d result : %d".format(boxIndex, maxIndex)
-                    Log.i("OCR", resultString)
-                    digits += maxIndex.toString();
+                    if (box !== null){
+                        val resizedBox = Bitmap.createScaledBitmap(box, 35, 35,true)
+                        val byteBuffer = convertBitmapToByteBuffer(resizedBox)
+                        inputFeature0.loadBuffer(byteBuffer)
+                        val outputs = model.process(inputFeature0)
+                        val outputFeature0 = outputs.outputFeature0AsTensorBuffer
+                        val result = outputFeature0.floatArray
+                        val maxIndex = result.indices.maxBy { result[it] } ?: -1
+                        Log.i("Max index : ", maxIndex.toString())
+                        if(maxIndex.toString() == "10"){
+                            digits += "0"
+                        }else{
+                            digits += maxIndex.toString();
+                        }
+                    }
+
                 }else{
                     break
                 }
